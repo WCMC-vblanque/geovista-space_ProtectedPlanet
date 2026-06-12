@@ -8,17 +8,17 @@ class AssetGeneratorTest < ActiveSupport::TestCase
   end
 
   test '#protected_area_tile, given a protected area without images and an
-   options hash, sends a request to Mapbox and returns the content' do
+   options hash, sends a request to MapTiler and returns the content' do
 
     response_mock = mock
     response_mock.stubs(:body).returns('the image')
     response_mock.stubs(:code).returns('200')
 
     Rails.application.secrets.
-      stubs(:mapbox).
-      returns({'base_url' => 'http://mapbox.com/', 'access_token' => '123'})
+      stubs(:maptiler).
+      returns({'base_url' => 'https://api.maptiler.com/maps/outdoor/static/', 'api_key' => 'testkey'})
     Net::HTTP.expects(:get_response).
-      with('mapbox.com', '/geojson({})/auto/304x138@2x.png?access_token=123').
+      with('api.maptiler.com', '/maps/outdoor/static/geojson({})/auto/304x138@2x.png?key=testkey').
       returns(response_mock)
 
     pa_image = AssetGenerator.protected_area_tile(@protected_area)

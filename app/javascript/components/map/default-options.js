@@ -2,15 +2,16 @@ export const BASELAYERS_DEFAULT = [
   {
     id: 'terrain',
     name: 'Terrain',
-    style: 'mapbox://styles/unepwcmc/cko1hsfi50vog17l697cr4d6p'
+    style: 'https://tiles.openfreemap.org/styles/liberty'
   },
   {
     id: 'satellite',
     name: 'Satellite',
-    style: 'mapbox://styles/unepwcmc/ckniq2twg0q3b17s5gqfxhagf'
+    // Requires a free MapTiler API key (maptiler.com) — replace YOUR_MAPTILER_KEY
+    style: 'https://api.maptiler.com/maps/satellite/style.json?key=YOUR_MAPTILER_KEY'
   }
 ]
-export const RTL_TEXT_PLUGIN_URL = 'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.2.3/mapbox-gl-rtl-text.js'
+export const RTL_TEXT_PLUGIN_URL = 'https://unpkg.com/@maplibre/maplibre-gl-rtl-text@0.3.0/maplibre-gl-rtl-text.min.js'
 export const MAP_OPTIONS_DEFAULT = {
   container: 'map-target',
   scrollZoom: false,

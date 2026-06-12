@@ -48,7 +48,6 @@ export default {
 
   data() {
     return {
-      accessToken: process.env.MAPBOX_ACCESS_TOKEN,
       containerId: MAP_OPTIONS_DEFAULT.container,
       map: {},
     }
@@ -114,14 +113,11 @@ export default {
   methods: {
     initMap() {
       /* eslint-disable no-undef */
-      mapboxgl.accessToken = this.accessToken
-      // Add support for RTL languages
-      mapboxgl.setRTLTextPlugin(
-        RTL_TEXT_PLUGIN_URL, 
-        null, 
+      maplibregl.setRTLTextPlugin(
+        RTL_TEXT_PLUGIN_URL,
         true // Lazy loading
       )
-      this.map = new mapboxgl.Map(this.mapOptions)
+      this.map = new maplibregl.Map(this.mapOptions)
       this.addControls()
       this.addEventHandlersToMap()
     },

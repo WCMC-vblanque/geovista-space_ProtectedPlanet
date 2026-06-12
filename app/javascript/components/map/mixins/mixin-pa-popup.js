@@ -58,15 +58,15 @@ export default {
     generateAttributeHtmlElement(elementType, element) {
       switch (elementType) {
         case 'span':
-          return `<span class="mapboxgl-popup-content__wrapper">
-                    <span class="mapboxgl-popup-content__title">${element.title}: </span>
-                    <span class="mapboxgl-popup-content__value">${element.value}</span> 
+          return `<span class="v-map-popup__wrapper">
+                    <span class="v-map-popup__title">${element.title}: </span>
+                    <span class="v-map-popup__value">${element.value}</span> 
                   </span>`
         case 'a':
-          return `<span class="mapboxgl-popup-content__wrapper">
-                    <span class="mapboxgl-popup-content__title">${element.title}: </span>
-                    <a class="mapboxgl-popup-content__link" href="${element.url}">
-                      <span class="mapboxgl-popup-content__value">${element.value}</span>
+          return `<span class="v-map-popup__wrapper">
+                    <span class="v-map-popup__title">${element.title}: </span>
+                    <a class="v-map-popup__link" href="${element.url}">
+                      <span class="v-map-popup__value">${element.value}</span>
                     </a>
                   </span>`
 
@@ -76,13 +76,13 @@ export default {
       }
     },
     generateHtml(attributes) {
-      const generateLi = (elementString) => `<li class="mapboxgl-popup-content__attribute">${elementString}</li>`
+      const generateLi = (elementString) => `<li class="v-map-popup__attribute">${elementString}</li>`
       const attributesHtml = []
       for (const attribute of attributes) {
         const attributeHtml = generateLi(this.generateAttributeHtmlElement(attribute.url ? 'a' : 'span', attribute))
         attributesHtml.push(attributeHtml)
       }
-      return `<ul class="mapboxgl-popup-content__attributes">
+      return `<ul class="v-map-popup__attributes">
                 ${attributesHtml.join('')}
               </ul>`
 
@@ -112,7 +112,7 @@ export default {
       pin.className = 'v-map-pin'
 
       // eslint-disable-next-line no-undef
-      this.popups.push(new mapboxgl.Popup({
+      this.popups.push(new maplibregl.Popup({
         className: 'v-map-pa-popup',
         closeButton: false,
         offset: this.popupOffsets
@@ -123,7 +123,7 @@ export default {
       )
 
       // eslint-disable-next-line no-undef
-      this.markers.push(new mapboxgl.Marker({ element: pin, anchor: 'bottom' })
+      this.markers.push(new maplibregl.Marker({ element: pin, anchor: 'bottom' })
         .setLngLat(coords)
         .addTo(this.map)
       )
