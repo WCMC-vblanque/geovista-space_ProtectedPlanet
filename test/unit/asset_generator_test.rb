@@ -1,50 +1,41 @@
 require 'test_helper'
 
 class AssetGeneratorTest < ActiveSupport::TestCase
+  VALID_GEOJSON = '{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[10.0,20.0],[11.0,20.0],[11.0,21.0],[10.0,21.0],[10.0,20.0]]]}}'
+
   def setup
-    @options = {size: {x: 25, y: 25}}
     @protected_area = FactoryGirl.create(:protected_area)
-    @protected_area.stubs(:geojson).returns('{}')
+    @protected_area.stubs(:geojson).returns(VALID_GEOJSON)
   end
 
-  test '#protected_area_tile, given a protected area without images and an
-   options hash, sends a request to ESRI World Imagery and returns the content' do
+  test '#protected_area_tile renders a thumbnail via the Node.js script and returns PNG content' do
+    fake_png = 'PNG_BINARY_DATA'
 
-    response_mock = mock
-    response_mock.stubs(:body).returns('the image')
-    response_mock.stubs(:code).returns('200')
+    Open3.expects(:capture3).
+      with("node #{AssetGenerator::THUMBNAIL_SCRIPT}", stdin_data: VALID_GEOJSON).
+      returns([fake_png, '', mock(success?: true)])
 
-    geojson = '{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[10.0,20.0],[11.0,20.0],[11.0,21.0],[10.0,21.0],[10.0,20.0]]]}}'
-    @protected_area.stubs(:geojson).returns(geojson)
-
-    Net::HTTP.any_instance.expects(:request).returns(response_mock)
-
-    pa_image = AssetGenerator.protected_area_tile(@protected_area)
-    assert_equal 'the image', pa_image
+    result = AssetGenerator.protected_area_tile(@protected_area)
+    assert_equal fake_png, result
   end
 
-  test '#protected_area_tile, when an exception occurs during the retrieval of the
-   tile, returns the fallback tile' do
-    skip('no longer try to provide a backend-generated fallback image')
-    response_mock = mock
-    response_mock.stubs(:code).returns('404')
-    Net::HTTP.stubs(:get_response).returns(response_mock)
+  test '#protected_area_tile returns empty string when the Node.js script fails' do
+    Open3.expects(:capture3).
+      with("node #{AssetGenerator::THUMBNAIL_SCRIPT}", stdin_data: VALID_GEOJSON).
+      returns(['', 'some error', mock(success?: false)])
 
-    File.expects(:read).with(AssetGenerator::FALLBACK_PATH).returns('fallback image')
-
-    pa_image = AssetGenerator.protected_area_tile(@protected_area)
-    assert_equal 'fallback image', pa_image
+    result = AssetGenerator.protected_area_tile(@protected_area)
+    assert_equal '', result
   end
 
-  test '#protected_area_tile, given a Protected Area with no geometry, returns
-   the fallback tile' do
-    skip('no longer try to provide a backend-generated fallback image')
-    AssetGenerator.expects(:fallback_tile).returns('fallback image')
+  test '#protected_area_tile returns empty string when protected area is nil' do
+    result = AssetGenerator.protected_area_tile(nil)
+    assert_equal '', result
+  end
 
-    protected_area = FactoryGirl.create(:protected_area)
-    protected_area.stubs(:geojson).returns(nil)
-
-    pa_image = AssetGenerator.protected_area_tile(protected_area)
-    assert_equal 'fallback image', pa_image
+  test '#protected_area_tile returns empty string when geojson is blank' do
+    @protected_area.stubs(:geojson).returns(nil)
+    result = AssetGenerator.protected_area_tile(@protected_area)
+    assert_equal '', result
   end
 end
