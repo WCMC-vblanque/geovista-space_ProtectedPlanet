@@ -6,7 +6,7 @@ deb https://archive.debian.org/debian buster-updates main\n\
 deb https://archive.debian.org/debian-security buster/updates main\n' > /etc/apt/sources.list \
  && printf 'Acquire::Check-Valid-Until "0";\nAcquire::Retries "3";\nAcquire::http::Pipeline-Depth "0";\n' > /etc/apt/apt.conf.d/99no-check-valid \
  && apt-get -o Acquire::Check-Valid-Until=false update
-RUN curl -fsSL https://nodejs.org/dist/v18.20.4/node-v18.20.4-linux-x64.tar.xz \
+RUN curl -fsSL https://nodejs.org/dist/v16.20.2/node-v16.20.2-linux-x64.tar.xz \
     | tar -xJ -C /usr/local --strip-components=1 --no-same-owner
 RUN apt-get install -y \
         apt-utils \
