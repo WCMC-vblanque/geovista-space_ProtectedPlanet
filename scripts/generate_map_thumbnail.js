@@ -2,6 +2,7 @@
  * Generates a 304x138 PNG static map thumbnail.
  * Reads GeoJSON from stdin, writes PNG binary to stdout.
  *
+ * Requires Node.js 18+ (staticmaps@1.12 uses sharp which needs node: builtins).
  * Usage: node scripts/generate_map_thumbnail.js < input.geojson > output.png
  */
 'use strict'
@@ -12,23 +13,23 @@ const WIDTH  = 304
 const HEIGHT = 138
 const ESRI_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 
-// Polygon style — white outline, semi-transparent white fill (visible on satellite)
+// White outline with light fill — visible on satellite imagery
 const POLYGON_STYLE = {
-  color:  '#FFFFFF',
-  width:  2,
-  fill:   'rgba(255, 255, 255, 0.15)'
+  color: '#FFFFFF',
+  width: 2,
+  fill:  'rgba(255, 255, 255, 0.15)'
 }
 
 async function generateThumbnail(geojsonStr) {
   const geojson = JSON.parse(geojsonStr)
 
   const map = new StaticMaps({
-    width:   WIDTH,
-    height:  HEIGHT,
-    tileUrl: ESRI_TILE_URL,
+    width:    WIDTH,
+    height:   HEIGHT,
+    tileUrl:  ESRI_TILE_URL,
     tileSize: 256,
     tileRequestTimeout: 10000,
-    tileRequestLimit: 10
+    tileRequestLimit:   10
   })
 
   addFeatures(map, geojson)
@@ -39,8 +40,7 @@ async function generateThumbnail(geojsonStr) {
 }
 
 function addFeatures(map, geojson) {
-  const geometries = flatGeometries(geojson)
-  for (const geom of geometries) {
+  for (const geom of flatGeometries(geojson)) {
     drawGeometry(map, geom)
   }
 }
@@ -70,7 +70,6 @@ function drawGeometry(map, geom) {
         map.addPolygon({ coords: part[0], ...POLYGON_STYLE })
       }
       break
-    // Points and lines are ignored — thumbnails are boundary-only
   }
 }
 
