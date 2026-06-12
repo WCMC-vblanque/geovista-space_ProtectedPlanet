@@ -1,3 +1,16 @@
+const EOX_SATELLITE_STYLE = {
+  version: 8,
+  sources: {
+    'eox-sentinel2': {
+      type: 'raster',
+      tiles: ['https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg'],
+      tileSize: 256,
+      attribution: 'Sentinel-2 cloudless by <a href="https://eox.at">EOX IT Services GmbH</a> (CC BY-SA 4.0)'
+    }
+  },
+  layers: [{ id: 'eox-sentinel2', type: 'raster', source: 'eox-sentinel2' }]
+}
+
 export const BASELAYERS_DEFAULT = [
   {
     id: 'terrain',
@@ -7,8 +20,7 @@ export const BASELAYERS_DEFAULT = [
   {
     id: 'satellite',
     name: 'Satellite',
-    // Requires a free MapTiler API key (maptiler.com) — replace YOUR_MAPTILER_KEY
-    style: 'https://api.maptiler.com/maps/satellite/style.json?key=YOUR_MAPTILER_KEY'
+    style: EOX_SATELLITE_STYLE
   }
 ]
 export const RTL_TEXT_PLUGIN_URL = 'https://unpkg.com/@maplibre/maplibre-gl-rtl-text@0.3.0/maplibre-gl-rtl-text.min.js'

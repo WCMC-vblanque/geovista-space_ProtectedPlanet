@@ -8,18 +8,16 @@ class AssetGeneratorTest < ActiveSupport::TestCase
   end
 
   test '#protected_area_tile, given a protected area without images and an
-   options hash, sends a request to MapTiler and returns the content' do
+   options hash, sends a request to ESRI World Imagery and returns the content' do
 
     response_mock = mock
     response_mock.stubs(:body).returns('the image')
     response_mock.stubs(:code).returns('200')
 
-    Rails.application.secrets.
-      stubs(:maptiler).
-      returns({'base_url' => 'https://api.maptiler.com/maps/outdoor/static/', 'api_key' => 'testkey'})
-    Net::HTTP.expects(:get_response).
-      with('api.maptiler.com', '/maps/outdoor/static/geojson({})/auto/304x138@2x.png?key=testkey').
-      returns(response_mock)
+    geojson = '{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[10.0,20.0],[11.0,20.0],[11.0,21.0],[10.0,21.0],[10.0,20.0]]]}}'
+    @protected_area.stubs(:geojson).returns(geojson)
+
+    Net::HTTP.any_instance.expects(:request).returns(response_mock)
 
     pa_image = AssetGenerator.protected_area_tile(@protected_area)
     assert_equal 'the image', pa_image

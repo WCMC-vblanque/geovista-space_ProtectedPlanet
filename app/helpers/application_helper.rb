@@ -59,7 +59,7 @@ module ApplicationHelper
   end
 
   def protected_area_cover(protected_area, with_tag: true)
-    version = Rails.application.secrets.maptiler[:version]
+    version = Rails.application.secrets.map[:static_image_version]
     image_params = { id: protected_area.site_id, type: 'protected_area', version: version }
     data = cover_data(image_params, protected_area.class)
 
@@ -75,7 +75,7 @@ module ApplicationHelper
   end
 
   def country_cover(country, with_tag: true)
-    version = Rails.application.secrets.maptiler[:version]
+    version = Rails.application.secrets.map[:static_image_version]
     image_params = { id: country.iso, type: 'country', version: version }
     data = cover_data(image_params, country.class)
 
@@ -88,7 +88,7 @@ module ApplicationHelper
   end
 
   def region_cover(region, with_tag: true)
-    version = Rails.application.secrets.maptiler[:version]
+    version = Rails.application.secrets.map[:static_image_version]
     image_params = { id: region.iso, type: 'region', version: version }
     return tiles_path(image_params) unless with_tag
 
