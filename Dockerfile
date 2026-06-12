@@ -125,7 +125,7 @@ RUN bundle config build.nokogiri --use-system-libraries
 RUN gem install bundler -v 1.17.3 && bundle _1.17.3_ install
 
 # As it fails for not able to download r809590 during first time of yarn install so we need to skip it and install it manually later
-RUN PUPPETEER_SKIP_DOWNLOAD=true yarn install
+RUN PUPPETEER_SKIP_DOWNLOAD=true yarn install --ignore-engines
 
 
 COPY . /ProtectedPlanet
