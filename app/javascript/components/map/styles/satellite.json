@@ -3,12 +3,12 @@
   "name": "PP Satellite (Esri World Imagery + UN boundaries)",
   "glyphs": "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
   "sources": {
-    "esri-imagery": {
+    "imagery": {
       "type": "raster",
+      "tileSize": 256,
       "tiles": [
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
       ],
-      "tileSize": 256,
       "maxzoom": 19,
       "attribution": "Tiles &copy; <a href=\"https://www.esri.com\">Esri</a> &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
     },
@@ -25,7 +25,7 @@
     {
       "id": "satellite-imagery",
       "type": "raster",
-      "source": "esri-imagery"
+      "source": "imagery"
     },
     {
       "id": "un-boundary-Country_Line_Boundaries_Erase/A dash and a dot line (Boundary of former Palestine Mandate, Golan)",

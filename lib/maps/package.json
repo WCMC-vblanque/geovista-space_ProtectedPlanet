@@ -1,0 +1,13 @@
+{
+  "name": "pp-basemap-styles",
+  "private": true,
+  "description": "Generates the bundled and preview MapLibre basemap styles",
+  "type": "module",
+  "scripts": {
+    "build": "node build-basemap-styles.mjs",
+    "build:preview": "node build-basemap-styles.mjs --preview"
+  },
+  "dependencies": {
+    "@protomaps/basemaps": "5.7.2"
+  }
+}
