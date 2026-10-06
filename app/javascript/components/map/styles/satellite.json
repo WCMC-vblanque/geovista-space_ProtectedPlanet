@@ -1,0 +1,311 @@
+{
+  "version": 8,
+  "name": "PP Satellite (Esri World Imagery + UN boundaries)",
+  "glyphs": "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+  "sources": {
+    "esri-imagery": {
+      "type": "raster",
+      "tiles": [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+      ],
+      "tileSize": 256,
+      "maxzoom": 19,
+      "attribution": "Tiles &copy; <a href=\"https://www.esri.com\">Esri</a> &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+    },
+    "un": {
+      "type": "vector",
+      "tiles": [
+        "https://data-gis.unep-wcmc.org/server/rest/services/Hosted/UN_Boundaries_Labels/VectorTileServer/tile/{z}/{y}/{x}.pbf"
+      ],
+      "maxzoom": 8,
+      "attribution": "Boundaries: <a href=\"https://www.un.org/geospatial\">UN Geospatial</a>, UNEP-WCMC"
+    }
+  },
+  "layers": [
+    {
+      "id": "satellite-imagery",
+      "type": "raster",
+      "source": "esri-imagery"
+    },
+    {
+      "id": "un-boundary-Country_Line_Boundaries_Erase/A dash and a dot line (Boundary of former Palestine Mandate, Golan)",
+      "type": "line",
+      "source": "un",
+      "source-layer": "Country_Line_Boundaries_Erase",
+      "filter": [
+        "==",
+        "_symbol",
+        0
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#828282",
+        "line-dasharray": [
+          12,
+          6,
+          2,
+          6
+        ],
+        "line-width": 0.666667
+      }
+    },
+    {
+      "id": "un-boundary-Country_Line_Boundaries_Erase/Continuous line (International boundary line)",
+      "type": "line",
+      "source": "un",
+      "source-layer": "Country_Line_Boundaries_Erase",
+      "filter": [
+        "==",
+        "_symbol",
+        1
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#828282",
+        "line-width": 0.666667
+      }
+    },
+    {
+      "id": "un-boundary-Country_Line_Boundaries_Erase/Dashed boundary line (Disputed Boundaries)",
+      "type": "line",
+      "source": "un",
+      "source-layer": "Country_Line_Boundaries_Erase",
+      "filter": [
+        "==",
+        "_symbol",
+        2
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#828282",
+        "line-dasharray": [
+          12,
+          6
+        ],
+        "line-width": 0.666667
+      }
+    },
+    {
+      "id": "un-boundary-Country_Line_Boundaries_Erase/More dotted boundary line (Jammu Kashmi; Abyei)",
+      "type": "line",
+      "source": "un",
+      "source-layer": "Country_Line_Boundaries_Erase",
+      "filter": [
+        "==",
+        "_symbol",
+        3
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#828282",
+        "line-dasharray": [
+          2,
+          6
+        ],
+        "line-width": 0.666667
+      }
+    },
+    {
+      "id": "un-label-Countries_Labels/label/Antarctica",
+      "type": "symbol",
+      "source": "un",
+      "source-layer": "Countries_Labels",
+      "filter": [
+        "==",
+        "_label_class",
+        0
+      ],
+      "minzoom": 2.0793,
+      "maxzoom": 6.2086,
+      "layout": {
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": 13.3333,
+        "text-anchor": "center",
+        "text-field": "{_name}",
+        "text-optional": true
+      },
+      "paint": {
+        "text-color": "#ffffff",
+        "text-halo-color": "#000000",
+        "text-halo-width": 1.33333
+      }
+    },
+    {
+      "id": "un-label-Countries_Labels/label/Jammu and Kashmir",
+      "type": "symbol",
+      "source": "un",
+      "source-layer": "Countries_Labels",
+      "filter": [
+        "==",
+        "_label_class6",
+        6
+      ],
+      "minzoom": 3.3017,
+      "maxzoom": 7.2086,
+      "layout": {
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": 8,
+        "text-anchor": "center",
+        "text-field": "{_name6}",
+        "text-optional": true
+      },
+      "paint": {
+        "text-color": "#ffffff",
+        "text-halo-color": "#000000",
+        "text-halo-width": 1.33333
+      }
+    },
+    {
+      "id": "un-label-Countries_Labels/label/The City of Vatican",
+      "type": "symbol",
+      "source": "un",
+      "source-layer": "Countries_Labels",
+      "filter": [
+        "==",
+        "_label_class5",
+        5
+      ],
+      "minzoom": 4.8866,
+      "maxzoom": 6.2086,
+      "layout": {
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": 10.6667,
+        "text-anchor": "center",
+        "text-field": "{_name5}",
+        "text-optional": true
+      },
+      "paint": {
+        "text-color": "#ffffff",
+        "text-halo-color": "#000000",
+        "text-halo-width": 1.33333
+      }
+    },
+    {
+      "id": "un-label-Countries_Labels/label/Occupied Palestinian Territory",
+      "type": "symbol",
+      "source": "un",
+      "source-layer": "Countries_Labels",
+      "filter": [
+        "==",
+        "_label_class3",
+        3
+      ],
+      "minzoom": 3.8866,
+      "maxzoom": 8.2086,
+      "layout": {
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": 10.6667,
+        "text-anchor": "center",
+        "text-letter-spacing": 0.35,
+        "text-field": "{_name3}",
+        "text-optional": true
+      },
+      "paint": {
+        "text-color": "#ffffff",
+        "text-halo-color": "#000000",
+        "text-halo-width": 1.33333
+      }
+    },
+    {
+      "id": "un-label-Countries_Labels/label/Special Region or Province",
+      "type": "symbol",
+      "source": "un",
+      "source-layer": "Countries_Labels",
+      "filter": [
+        "==",
+        "_label_class4",
+        4
+      ],
+      "minzoom": 3.3017,
+      "maxzoom": 6.2086,
+      "layout": {
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": 10.6667,
+        "text-anchor": "center",
+        "text-field": "{_name4}",
+        "text-optional": true
+      },
+      "paint": {
+        "text-color": "#ffffff",
+        "text-halo-color": "#000000",
+        "text-halo-width": 1.33333
+      }
+    },
+    {
+      "id": "un-label-Countries_Labels/label/Territories and Non-Self Governing Territory",
+      "type": "symbol",
+      "source": "un",
+      "source-layer": "Countries_Labels",
+      "filter": [
+        "==",
+        "_label_class2",
+        2
+      ],
+      "minzoom": 3.3017,
+      "maxzoom": 8.2086,
+      "layout": {
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": 8,
+        "text-anchor": "center",
+        "text-field": "{_name2}",
+        "text-optional": true
+      },
+      "paint": {
+        "text-color": "#ffffff",
+        "text-halo-color": "#000000",
+        "text-halo-width": 1.33333
+      }
+    },
+    {
+      "id": "un-label-Countries_Labels/label/Member State",
+      "type": "symbol",
+      "source": "un",
+      "source-layer": "Countries_Labels",
+      "filter": [
+        "==",
+        "_label_class1",
+        1
+      ],
+      "minzoom": 2.0793,
+      "maxzoom": 6.2086,
+      "layout": {
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": 10.6667,
+        "text-anchor": "center",
+        "text-field": "{_name1}",
+        "text-optional": true
+      },
+      "paint": {
+        "text-color": "#ffffff",
+        "text-halo-color": "#000000",
+        "text-halo-width": 1.33333
+      }
+    }
+  ]
+}
