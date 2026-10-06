@@ -42,7 +42,7 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
    cd public/maps && python3 -m http.server 8765 --bind 0.0.0.0
    ```
 2. **Open `http://<host>:8765/compare/`.**
-3. **Self-hosted PMTiles options:** serve an extract with `pmtiles serve` and paste its TileJSON URL (e.g. `http://<host>:8080/basemap-z10.json`) into **PMTiles URL**.
+3. **Self-hosted PMTiles options:** serve an extract with `pmtiles serve` and paste its TileJSON URL (e.g. `http://<host>:8082/basemap-z10.json`) into **PMTiles URL**.
    - Extract: `pmtiles extract https://build.protomaps.com/<YYYYMMDD>.pmtiles basemap-z10.pmtiles --maxzoom=10`
 4. **Current Mapbox style (reference):** paste a temporary public Mapbox token into **Mapbox token**; never commit it.
 5. **Pre-fill the token and PMTiles URL** (optional, like a `.env`):

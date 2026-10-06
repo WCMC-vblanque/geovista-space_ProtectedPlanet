@@ -4,5 +4,5 @@
 // in the Mapbox console when testing is over.
 window.PLAYGROUND_CONFIG = {
   mapboxToken: '',                                   // e.g. 'pk.…'
-  pmtilesUrl: 'http://172.20.0.161:8080/basemap-z10.json'
+  pmtilesUrl: 'http://172.20.0.161:8082/basemap-z10.json'
 }
