@@ -26,6 +26,9 @@ import mixinLayers from './mixins/mixin-layers'
 import mixinPaPopup from './mixins/mixin-pa-popup'
 import mixinBoundingBox from './mixins/mixin-bounding-box'
 
+// Protocols are global to maplibregl, so register once per page
+let isPmtilesProtocolAdded = false
+
 export default {
   name: 'VMap',
 
@@ -119,6 +122,11 @@ export default {
           RTL_TEXT_PLUGIN_URL,
           true // Lazy loading
         )
+      }
+      // Lets styles read pmtiles:// sources straight from object storage
+      if (!isPmtilesProtocolAdded && typeof pmtiles !== 'undefined') {
+        maplibregl.addProtocol('pmtiles', new pmtiles.Protocol().tile)
+        isPmtilesProtocolAdded = true
       }
       this.map = new maplibregl.Map(this.mapOptions)
       this.addControls()
