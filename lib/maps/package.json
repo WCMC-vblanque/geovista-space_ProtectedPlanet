@@ -1,0 +1,12 @@
+{
+  "name": "pp-basemap-styles",
+  "private": true,
+  "description": "Generates the candidate basemap styles for the comparison playground",
+  "type": "module",
+  "scripts": {
+    "build": "node build-basemap-styles.mjs"
+  },
+  "dependencies": {
+    "@protomaps/basemaps": "5.7.2"
+  }
+}
