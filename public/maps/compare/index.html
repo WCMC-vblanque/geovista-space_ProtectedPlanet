@@ -70,7 +70,7 @@
   <label title="PP today: ArcGIS raster tiles cached to zoom 10. Vector: ArcGIS Hosted/WDPCA vector tiles (to zoom 16).">
     Overlays <select id="overlay-mode"><option value="raster">Raster (PP today)</option><option value="vector">Vector (WDPCA)</option></select>
   </label>
-  <label><input type="checkbox" id="pp-maxzoom" checked> PP max zoom 10</label>
+  <label title="Unticked: zoom to 18 (vector overlays stay sharp). Ticked: PP's current limit."><input type="checkbox" id="pp-maxzoom"> PP max zoom 10</label>
   <label title="A .pmtiles URL, or the TileJSON URL printed by `pmtiles serve` (e.g. http://pve01:8080/basemap-z10.json)">
     PMTiles URL <input id="pmtiles-url" placeholder="http://pve01:8080/basemap-z10.json" size="22">
   </label>
@@ -355,7 +355,8 @@ function addOverlays (map) {
     return
   }
   for (const o of OVERLAYS) {
-    map.addLayer({ id: o.id, type: 'raster', source: { type: 'raster', tiles: [o.url], tileSize: 128 } }, before)
+    // ArcGIS caches these tiles to zoom 10 only: stretch them beyond instead of leaving gaps
+    map.addLayer({ id: o.id, type: 'raster', source: { type: 'raster', tiles: [o.url], tileSize: 128, maxzoom: 10 } }, before)
   }
 }
 
@@ -456,6 +457,9 @@ function buildLegend (side) {
 }
 
 // --- Side-by-side maps ----------------------------------------------------
+// 18 shows PAs/OECMs at their best resolution; 10 is PP's current limit
+const maxZoom = () => ($('pp-maxzoom').checked ? 10 : 18)
+
 // View in the URL hash (#zoom/lat/lon), so a copied link reopens the same view
 function viewFromHash () {
   const [z, lat, lon] = location.hash.slice(1).split('/').map(Number)
@@ -486,7 +490,7 @@ let syncing = false
 function makeMap (side, key) {
   const sel = $(`sel-${side}`)
   for (const [k] of NUMBERING) sel.add(new Option(CANDIDATES[k].name, k, false, k === key))
-  const map = new maplibregl.Map({ container: `map-${side}`, style: { version: 8, sources: {}, layers: [] }, ...INITIAL_VIEW, maxZoom: 10 })
+  const map = new maplibregl.Map({ container: `map-${side}`, style: { version: 8, sources: {}, layers: [] }, ...INITIAL_VIEW, maxZoom: maxZoom() })
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }))
   map.on('style.load', () => {
     // Compare every option in the same flat Web Mercator projection
@@ -519,7 +523,7 @@ async function setBasemap (side) {
 }
 
 $('overlay-mode').addEventListener('change', () => ['a', 'b'].forEach(setBasemap))
-$('pp-maxzoom').addEventListener('change', e => Object.values(maps).forEach(m => m.setMaxZoom(e.target.checked ? 10 : 19)))
+$('pp-maxzoom').addEventListener('change', () => Object.values(maps).forEach(m => m.setMaxZoom(maxZoom())))
 // Defaults: config.local.js (shared by every browser using this server),
 // overridden by what was last typed in this browser
 const CONFIG = window.PLAYGROUND_CONFIG || {}
