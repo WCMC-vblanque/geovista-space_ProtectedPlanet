@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "node build-basemap-styles.mjs",
-    "thumbs": "node render-thumbnail.mjs"
+    "thumbs": "node render-thumbnail.mjs",
+    "thumbs:serve": "node thumbnail-server.mjs"
   },
   "dependencies": {
     "@mapbox/vector-tile": "^1.3.1",

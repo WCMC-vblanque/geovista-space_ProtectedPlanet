@@ -95,6 +95,27 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
    npm run thumbs -- --pmtiles https://build.protomaps.com/<YYYYMMDD>.pmtiles 873 2575 2628 220201
    ```
    - Output: `public/maps/thumbs/<site_id>.png` (608×276, @2x of 304×138).
+6. **Marine outlines are lighter than PP's today (`#d4e6f4`)** so they stand out over dark bathymetry.
+   - Internal lines of multi-part sites (e.g. Great Barrier Reef zones) are kept; outer-edge-only is tracked in an issue.
+
+### Thumbnail service (drop-in for Mapbox Static Images)
+
+1. **`lib/maps/thumbnail-server.mjs` accepts the URL Rails builds today.** Only `MAPBOX_STATIC_IMAGE_URL` changes; `AssetGenerator` and the thumbnail cache stay as they are.
+   - Route: `GET <base>/geojson(<url-encoded Feature>)/auto/<w>x<h>[@2x]`; the `access_token` is ignored.
+   - Only `auto` framing is supported: it is the only mode PP uses.
+2. **Overlay rules follow PP's GeoJSON properties.**
+   - `fill` = `#3E7BB6` → marine colours; anything else → terrestrial colours.
+   - `fill-opacity` = 0 (country and region covers) → no overlay, framing only.
+3. **Run it** (pve01 example):
+   ```bash
+   cd lib/maps && npm ci
+   npm run thumbs:serve -- --pmtiles https://build.protomaps.com/<YYYYMMDD>.pmtiles --port 8090
+   ```
+   - Then in PP: `MAPBOX_STATIC_IMAGE_URL=http://<host>:8090/static/` (trailing slash, as Rails appends `geojson(...)`).
+   - Options: `--concurrency n` (default: CPU count − 1, max 4), `--style <preview name>`, `PMTILES_URL` / `PORT` env vars.
+   - `GET /health` returns `ok`.
+4. **Errors return a non-200 status,** so Rails falls back to its placeholder as it does with Mapbox.
+5. **Later: pre-render all sites in a batch job** instead of rendering on request.
 
 ## Regenerate the styles
 

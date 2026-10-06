@@ -1,4 +1,4 @@
-// Thumbnail style shared by the server renderer (lib/maps/render-thumbnail.mjs)
+// Thumbnail style shared by the server renderer (lib/maps/thumbnail-renderer.mjs)
 // and the comparison playground, so both draw the same image.
 //
 // Base: UNEP Outdoor + terrain, plus seafloor relief (hillshade over water)
@@ -23,10 +23,11 @@ const BATHYMETRY = ['interpolate', ['linear'], ['elevation'],
  *
  * @param {object} base - UNEP Outdoor + terrain style (needs the `dem` source and a `water` layer).
  * @param {object} site - GeoJSON Feature or FeatureCollection of the site.
- * @param {{marine?: boolean}} [opts] - Marine sites are drawn in blue, others in green.
+ * @param {{marine?: boolean, overlay?: boolean}} [opts] - Marine sites are drawn in blue,
+ *   others in green; `overlay: false` only frames the geometry (country and region covers).
  * @returns {object} A new style object.
  */
-export function thumbnailStyle (base, site, { marine = false } = {}) {
+export function thumbnailStyle (base, site, { marine = false, overlay = true } = {}) {
   const style = structuredClone(base)
   const water = style.layers.findIndex(l => l.id === 'water')
   // Above the opaque water fill: depth tint, then shaded seafloor
@@ -41,6 +42,7 @@ export function thumbnailStyle (base, site, { marine = false } = {}) {
         'hillshade-accent-color': 'rgba(0, 0, 0, 0)'
       }
     })
+  if (!overlay) return style
 
   const c = SITE_COLORS[marine ? 'marine' : 'terrestrial']
   style.sources.site = { type: 'geojson', data: site }
