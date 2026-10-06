@@ -47,6 +47,15 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
 | Seagrasses, saltmarshes, coral reefs | data-gis vector tiles | Fast |
 | Night lights (2016) | data-gis `Hosted/Earth_at_Night_2016_3km` | Drawn on the fly: slower |
 
+## Fonts (UNEP Outdoor, self-hosted)
+
+1. **UNEP Outdoor (2a–2c) loads its fonts from `public/maps/fonts/`, not from a third-party server.**
+   - Noto Sans Regular / Medium / Italic (OFL), from Protomaps basemaps-assets.
+   - Roboto Condensed SemiBold (OFL / Apache-2.0), from VersaTiles: narrow, DIN-like capitals for country names.
+2. **Only the ranges up to U+2FFF are kept** (Latin, Greek, Cyrillic, punctuation): the map shows English names only.
+3. **Refresh or add a font:** edit `FONTS` in `lib/maps/fetch-glyphs.mjs`, then `node fetch-glyphs.mjs` in `lib/maps`.
+4. **Bahnschrift and DIN Pro are not used:** both are licensed fonts that cannot be served on the web.
+
 ## Licence warning
 
 **The "Mapbox UNEP Faint replica" options are for testing only.** The original Mapbox style was built from the Mapbox Outdoors template, which falls under Mapbox's service terms. Check before production: [issue #2](https://github.com/WCMC-vblanque/geovista-space_ProtectedPlanet/issues/2).
