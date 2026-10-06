@@ -58,15 +58,15 @@ export default {
     generateAttributeHtmlElement(elementType, element) {
       switch (elementType) {
         case 'span':
-          return `<span class="mapboxgl-popup-content__wrapper">
-                    <span class="mapboxgl-popup-content__title">${element.title}: </span>
-                    <span class="mapboxgl-popup-content__value">${element.value}</span> 
+          return `<span class="maplibregl-popup-content__wrapper">
+                    <span class="maplibregl-popup-content__title">${element.title}: </span>
+                    <span class="maplibregl-popup-content__value">${element.value}</span> 
                   </span>`
         case 'a':
-          return `<span class="mapboxgl-popup-content__wrapper">
-                    <span class="mapboxgl-popup-content__title">${element.title}: </span>
-                    <a class="mapboxgl-popup-content__link" href="${element.url}">
-                      <span class="mapboxgl-popup-content__value">${element.value}</span>
+          return `<span class="maplibregl-popup-content__wrapper">
+                    <span class="maplibregl-popup-content__title">${element.title}: </span>
+                    <a class="maplibregl-popup-content__link" href="${element.url}">
+                      <span class="maplibregl-popup-content__value">${element.value}</span>
                     </a>
                   </span>`
 
@@ -76,13 +76,13 @@ export default {
       }
     },
     generateHtml(attributes) {
-      const generateLi = (elementString) => `<li class="mapboxgl-popup-content__attribute">${elementString}</li>`
+      const generateLi = (elementString) => `<li class="maplibregl-popup-content__attribute">${elementString}</li>`
       const attributesHtml = []
       for (const attribute of attributes) {
         const attributeHtml = generateLi(this.generateAttributeHtmlElement(attribute.url ? 'a' : 'span', attribute))
         attributesHtml.push(attributeHtml)
       }
-      return `<ul class="mapboxgl-popup-content__attributes">
+      return `<ul class="maplibregl-popup-content__attributes">
                 ${attributesHtml.join('')}
               </ul>`
 

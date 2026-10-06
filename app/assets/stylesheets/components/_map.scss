@@ -112,7 +112,7 @@
   }
 }
 
-.mapboxgl-ctrl-top-right .mapboxgl-ctrl.mapboxgl-ctrl-group {
+.maplibregl-ctrl-top-right .maplibregl-ctrl.maplibregl-ctrl-group {
   margin-top: rem-calc(13);
   margin-right: rem-calc(10);
   
@@ -126,22 +126,22 @@
   }
 }
 
-.mapboxgl-ctrl-bottom-left {
+.maplibregl-ctrl-bottom-left {
   display: flex;
   flex-direction: column-reverse;
 }
 
-.mapboxgl-ctrl.mapboxgl-ctrl-group:not(:empty) {
+.maplibregl-ctrl.maplibregl-ctrl-group:not(:empty) {
   box-shadow: none;
 }
 
 //prevent controls sitting over the top of the download modal
-.mapboxgl-control-container .mapboxgl-ctrl-bottom-left,
-.mapboxgl-control-container .mapboxgl-ctrl-top-right { z-index: 1; }
+.maplibregl-control-container .maplibregl-ctrl-bottom-left,
+.maplibregl-control-container .maplibregl-ctrl-top-right { z-index: 1; }
 
-.mapboxgl-ctrl-group {
-  .mapboxgl-ctrl-icon.mapboxgl-ctrl-zoom-in,
-  .mapboxgl-ctrl-icon.mapboxgl-ctrl-zoom-out {
+.maplibregl-ctrl-group {
+  .maplibregl-ctrl-icon.maplibregl-ctrl-zoom-in,
+  .maplibregl-ctrl-icon.maplibregl-ctrl-zoom-out {
     border: solid rem-calc(1) $grey-dark;
     background-color: $white;
     background-position: center;
@@ -168,11 +168,11 @@
     }
   }
 
-  .mapboxgl-ctrl-icon.mapboxgl-ctrl-zoom-in {
+  .maplibregl-ctrl-icon.maplibregl-ctrl-zoom-in {
     @include icon-plus-mapbox;
   }
 
-  .mapboxgl-ctrl-icon.mapboxgl-ctrl-zoom-out {
+  .maplibregl-ctrl-icon.maplibregl-ctrl-zoom-out {
     @include icon-minus-mapbox;
   }
 }
