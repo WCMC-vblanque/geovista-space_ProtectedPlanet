@@ -102,12 +102,15 @@
    6. **`?maxzoom=<0-22>`** overrides the maximum zoom (default 10); combine with `?overlays=vector` to see overlays past zoom 10.
    7. **Example:** `/?basemap=pmtiles-relief&satellite=eox-2025&overlays=vector&maxzoom=14&pmtiles=http://<test-server>:8080/basemap-z14.json`
    8. **Unknown style or missing PMTiles URL:** the defaults are kept and a `[map preview]` warning is logged in the browser console.
-3. **Thumbnails: add `?thumbnail_source=<source>` to any page.**
+3. **Layers legend (top-left of every map, preview only):** fold/unfold it, show/hide each layer group and change its opacity (overlays, land, water, roads, UN boundaries/labels, …).
+   - Settings are kept when switching Terrain/Satellite; they reset on page reload.
+4. **Thumbnails: add `?thumbnail_source=<source>` to any page.**
    1. **Sources:** `mapbox` (current), `arcgis-clearmap-topo` (UN ClearMap Topo + site), `arcgis-esri-imagery` (Esri imagery + site).
    2. **Remembered in the session** until changed; `?thumbnail_source=` (empty) resets it.
    3. **ArcGIS thumbnails are SVGs** embedding two PNG exports (basemap + site from the WDPA/OECM MapServer).
    4. **Stored apart from Mapbox ones** in `storage/thumbnails`, so switching back and forth costs nothing.
-4. **Standalone alternative:** the comparison page shows any two basemaps side by side, plus thumbnails, without running PP.
+5. **Standalone alternative:** the comparison page (`public/maps/compare/`) shows any two basemaps side by side with the same legend, plus thumbnails, without running PP.
+   - Serve `public/maps` with any web server (e.g. `python3 -m http.server`) and open `/compare/`.
 
 ## 4. How to test
 
