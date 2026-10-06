@@ -160,7 +160,7 @@ export default {
 
     addLayerBeneathBoundariesAndLabels(layer) {
       executeAfterCondition(
-        () => this.firstForegroundLayerId,
+        () => this.firstForegroundLayerId !== null,
         () => { this.addLayer(layer) },
         10
       )

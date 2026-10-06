@@ -3,7 +3,8 @@ import { executeAfterCondition } from '../../../helpers/timing-helpers'
 export default {
   data () {
     return {
-      firstForegroundLayerId: '',
+      // null until the style has loaded; undefined means 'add on top'
+      firstForegroundLayerId: null,
     }
   },
 
@@ -17,7 +18,8 @@ export default {
       let firstSymbolId = ''
     
       for (const layer of this.map.getStyle().layers) {
-        if (layer.id.match('admin') && layer.id.match('boundary')) {
+        // Matches Mapbox ('admin-0-boundary') and OpenMapTiles ('boundary_2') ids
+        if (layer.id.match('boundary')) {
           firstBoundaryId = layer.id
           break
         } else if (layer.type === 'symbol') {
@@ -25,7 +27,8 @@ export default {
         }
       }
     
-      return firstBoundaryId || firstSymbolId
+      // Styles without labels or boundaries (e.g. imagery only): add on top
+      return firstBoundaryId || firstSymbolId || undefined
     },
 
     executeAfterStyleLoad (cb) {
