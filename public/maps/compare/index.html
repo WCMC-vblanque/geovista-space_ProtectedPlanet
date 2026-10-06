@@ -182,8 +182,20 @@ async function previewPmtiles (name) {
   const res = await fetch(`../preview/${name}.json`)
   if (!res.ok) throw new Error('Preview styles not found: serve the public/maps folder and open /compare/.')
   const style = await res.json()
+  // Tile URL template: from the .pmtiles file, or from the TileJSON of `pmtiles serve`
+  let tiles
+  const tileTemplate = async () => {
+    if (url.endsWith('.pmtiles')) return `pmtiles://${url}/{z}/{x}/{y}`
+    if (!tiles) {
+      const tj = await fetch(url).then(r => r.json()).catch(() => null)
+      if (!tj || !tj.tiles) throw new Error(`Cannot read the PMTiles TileJSON at ${url}: is \`pmtiles serve\` running?`)
+      tiles = tj.tiles[0]
+    }
+    return tiles
+  }
   for (const src of Object.values(style.sources)) {
     if (src.url === '__PMTILES_URL__') src.url = url.endsWith('.pmtiles') ? `pmtiles://${url}` : url
+    if (src.tiles && src.tiles[0] === '__PMTILES_TILES__') src.tiles = [await tileTemplate()]
   }
   return style
 }
