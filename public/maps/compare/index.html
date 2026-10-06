@@ -44,6 +44,7 @@
   .legend .row { display: grid; grid-template-columns: 1fr 70px; gap: 6px; align-items: center; }
   .legend .row label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .legend input[type=range] { width: 70px; padding: 0; }
+  .legend .head { font-weight: 600; color: var(--muted); margin-top: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
   #tab-thumbs { padding: 12px 16px; }
   #thumbs { display: grid; gap: 16px; margin-top: 12px; }
   .row { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
@@ -79,13 +80,13 @@
 </header>
 
 <section id="tab-basemaps">
-  <div class="pane"><div class="bar"><select id="sel-a"></select></div><div class="note" id="note-a"></div><div class="mapwrap"><div class="map" id="map-a"></div><details class="legend" id="legend-a" open><summary>Layers</summary><div class="rows"></div></details></div></div>
+  <div class="pane"><div class="bar"><select id="sel-a"></select></div><div class="note" id="note-a"></div><div class="mapwrap"><div class="map" id="map-a"></div><details class="legend" id="legend-a"><summary>Layers</summary><div class="rows"></div></details></div></div>
   <div class="viewbar" title="Current view of both maps (they move together)">
     <div class="zoom" id="view-zoom">z –</div>
     <div class="coords" id="view-coords"></div>
     <button id="copy-view" title="Copy a link that reopens this exact view">Copy view link</button>
   </div>
-  <div class="pane"><div class="bar"><select id="sel-b"></select></div><div class="note" id="note-b"></div><div class="mapwrap"><div class="map" id="map-b"></div><details class="legend" id="legend-b" open><summary>Layers</summary><div class="rows"></div></details></div></div>
+  <div class="pane"><div class="bar"><select id="sel-b"></select></div><div class="note" id="note-b"></div><div class="mapwrap"><div class="map" id="map-b"></div><details class="legend" id="legend-b"><summary>Layers</summary><div class="rows"></div></details></div></div>
 </section>
 
 <section id="tab-thumbs" hidden>
@@ -373,7 +374,7 @@ const OPACITY_PROPS = {
 const DEFAULT_OPACITY = { 'hillshade-exaggeration': 0.5 }
 
 function groupName (layer) {
-  if (layer.id.startsWith('ov-wdpa')) return 'Overlay: protected areas (WDPA)'
+  if (layer.id.startsWith('ov-wdpa')) return 'Overlay: Protected areas (WDPA)'
   if (layer.id.startsWith('ov-oecm')) return 'Overlay: OECMs'
   if (layer.type === 'background') return 'Background'
   if (layer.type === 'hillshade') return 'Relief (hillshade)'
@@ -424,15 +425,27 @@ function buildLegend (side) {
       for (const [p, v] of Object.entries(l.originals)) map.setPaintProperty(l.id, p, scaleOpacity(v, st.opacity / 100))
     }
   }
-  // Overlays first, then basemap groups from top to bottom
+  // "Protected areas & OECMs" section first, then basemap groups top to bottom
+  const isOverlay = (name) => name.startsWith('Overlay: ')
   const names = [...groups.keys()].reverse()
-  names.sort((x, y) => y.startsWith('Overlay') - x.startsWith('Overlay'))
+  names.sort((x, y) => isOverlay(y) - isOverlay(x) || (isOverlay(x) && y.includes('Protected areas') - x.includes('Protected areas')))
   rows.innerHTML = ''
+  let section = null
   for (const name of names) {
-    const st = legendState[side][name] || (legendState[side][name] = { visible: true, opacity: 100 })
+    const heading = isOverlay(name) ? 'Protected areas & OECMs' : 'Basemap'
+    if (heading !== section) {
+      section = heading
+      const head = document.createElement('div')
+      head.className = 'head'
+      head.textContent = heading
+      rows.appendChild(head)
+    }
+    // Overlays start hidden, to look at the basemaps first
+    const st = legendState[side][name] || (legendState[side][name] = { visible: !isOverlay(name), opacity: 100 })
+    const label = name.replace('Overlay: ', '')
     const row = document.createElement('div')
     row.className = 'row'
-    row.innerHTML = `<label title="${name}"><input type="checkbox" ${st.visible ? 'checked' : ''}> ${name}</label>` +
+    row.innerHTML = `<label title="${label}"><input type="checkbox" ${st.visible ? 'checked' : ''}> ${label}</label>` +
       `<input type="range" min="0" max="100" step="5" value="${st.opacity}" title="Opacity ${st.opacity}%">`
     const [check, range] = row.querySelectorAll('input')
     check.addEventListener('change', () => { st.visible = check.checked; apply(name) })
