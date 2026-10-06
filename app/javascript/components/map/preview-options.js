@@ -6,6 +6,7 @@
 //                       (default: PMTILES_BASEMAP_URL)
 //   ?overlays=vector    WDPA/OECM raster tiles replaced by the WDPCA vector
 //                       tiles (ArcGIS Hosted/WDPCA), not capped at zoom 10
+//   ?maxzoom=<0-22>     overrides the map maximum zoom (default 10)
 // <style> is a file name in public/maps/preview/ without .json.
 const PREVIEW_PATH = '/maps/preview'
 const PMTILES_PLACEHOLDER = '__PMTILES_URL__'
@@ -42,6 +43,12 @@ export function previewVectorOverlay (layer) {
   return VECTOR_OVERLAYS[layer.id.replace(/_\d+$/, '')] || null
 }
 
+export function previewMapOptions () {
+  const maxZoom = previewParam('maxzoom')
+  if (maxZoom === null || maxZoom === '' || isNaN(maxZoom)) { return {} }
+
+  return { maxZoom: Math.min(Math.max(Number(maxZoom), 0), 22) }
+}
 
 const pmtilesSourceUrl = (url) => url.endsWith('.pmtiles') ? `pmtiles://${url}` : url
 

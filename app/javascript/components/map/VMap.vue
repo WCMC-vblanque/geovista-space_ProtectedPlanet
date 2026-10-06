@@ -21,6 +21,7 @@ import {
 
 import {
   loadPreviewBaselayers,
+  previewMapOptions,
   previewVectorOverlay,
   VECTOR_SUBLAYER_SUFFIXES
 } from './preview-options'
@@ -82,6 +83,7 @@ export default {
         ...MAP_OPTIONS_DEFAULT,
         ...this.options.map,
         style: this.baselayers[0].style,
+        ...previewMapOptions()
       }
 
       if (this.initBounds) {
