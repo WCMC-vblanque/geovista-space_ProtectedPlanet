@@ -11,13 +11,17 @@ class AssetsController < ApplicationController
     cache_key = [
       'tiles',
       'image',
+      "v#{Rails.application.secrets.mapbox[:version]}",
       area_type,
       params[:id].to_s,
       (record.respond_to?(:updated_at) && record.updated_at ? record.updated_at.to_i : 'na')
     ].join(':')
 
-    image = Rails.cache.fetch(cache_key, expires_in: CACHE_FETCH_TTL) do
-      AssetGenerator.send(method_name, record)
+    image = THUMBNAIL_STORE.read(cache_key)
+    if image.blank?
+      image = AssetGenerator.send(method_name, record)
+      # Don't persist failures, so they are retried on the next request
+      THUMBNAIL_STORE.write(cache_key, image) if image.present?
     end
 
     if image.blank?
