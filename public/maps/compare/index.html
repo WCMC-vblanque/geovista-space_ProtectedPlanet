@@ -91,7 +91,7 @@
 <section id="tab-thumbs" hidden>
   <label>PA site IDs <input id="site-ids" value="873, 2575, 2628, 220201" size="30"></label>
   <button id="run-thumbs">Render</button>
-  <span class="note">Each row: current PP thumbnail (Mapbox, via protectedplanet.net cache) vs ArcGIS export candidates vs the proposed server thumbnail (UNEP Outdoor + terrain, seafloor relief, bathymetry, nearby towns, site from GeoJSON), pre-rendered as PNG by <code>lib/maps/render-thumbnail.mjs</code>. Times = load time in this browser.</span>
+  <span class="note">Each row: current PP thumbnail (Mapbox, via protectedplanet.net cache) vs ArcGIS export candidates vs the proposed server thumbnail (UNEP-WCMC Nature + terrain, seafloor relief, bathymetry, nearby towns, site from GeoJSON), pre-rendered as PNG by <code>lib/maps/render-thumbnail.mjs</code>. Times = load time in this browser.</span>
   <div id="thumbs"></div>
 </section>
 
@@ -221,17 +221,17 @@ const CANDIDATES = {
     build: async () => withRelief(await hybrid())
   },
   'unep-outdoor': {
-    name: 'Self-hosted PMTiles: UNEP Outdoor (original design)',
+    name: 'Self-hosted PMTiles: UNEP-WCMC Nature (original design)',
     note: '<b class="ok">UN boundaries & labels. Free to use:</b> own palette on Protomaps layers (BSD-3), relief, pale vegetation, English names; protection shown only by PP overlays.',
     build: () => previewPmtiles('unep-outdoor')
   },
   'unep-outdoor-terrain': {
-    name: 'Self-hosted PMTiles: UNEP Outdoor + terrain (original design)',
+    name: 'Self-hosted PMTiles: UNEP-WCMC Nature + terrain (original design)',
     note: '<b class="ok">UN boundaries & labels. Free to use:</b> 2a plus elevation tint (green lowlands, warm uplands, pale peaks) and a stronger multi-directional hillshade.',
     build: () => previewPmtiles('unep-outdoor-terrain')
   },
   'unep-outdoor-terrain-osm-parks': {
-    name: 'Self-hosted PMTiles: UNEP Outdoor + terrain + OSM parks',
+    name: 'Self-hosted PMTiles: UNEP-WCMC Nature + terrain + OSM parks',
     note: '<b class="ok">UN boundaries & labels.</b> As 2b, plus OpenStreetMap national parks/reserves in soft green. <b class="warn">May be confused with WDPA protected areas.</b>',
     build: () => previewPmtiles('unep-outdoor-terrain-osm-parks')
   },
@@ -511,6 +511,7 @@ function buildLegend (side) {
     if (!groups.has(name)) groups.set(name, [])
     groups.get(name).push({
       id: layer.id,
+      hidden: map.getLayoutProperty(layer.id, 'visibility') === 'none',
       originals: Object.fromEntries((OPACITY_PROPS[layer.type] || []).map(p => [p, map.getPaintProperty(layer.id, p) ?? DEFAULT_OPACITY[p]]))
     })
   }
@@ -542,8 +543,9 @@ function buildLegend (side) {
       head.textContent = heading
       rows.appendChild(head)
     }
-    // Overlays start hidden, to look at the basemaps first
-    const st = legendState[side][name] || (legendState[side][name] = { visible: !isOverlay(name) && !isContext(name), opacity: 100 })
+    // Overlays, context and layers hidden in the style start hidden
+    const startsHidden = groups.get(name).every(l => l.hidden)
+    const st = legendState[side][name] || (legendState[side][name] = { visible: !isOverlay(name) && !isContext(name) && !startsHidden, opacity: 100 })
     const label = name.replace(/^(Overlay|Context): /, '')
     const row = document.createElement('div')
     row.className = 'row'
@@ -645,7 +647,7 @@ $('pmtiles-url').addEventListener('change', (e) => {
   ;['a', 'b'].forEach(s => $(`sel-${s}`).value.startsWith('pmtiles') && setBasemap(s))
 })
 
-// Left: current Mapbox map (reference); right: the original UNEP Outdoor
+// Left: current Mapbox map (reference); right: the original UNEP-WCMC Nature
 makeMap('a', 'mapbox')
 makeMap('b', 'unep-outdoor')
 showView(maps.a)

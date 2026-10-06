@@ -20,9 +20,9 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
 | # | Option | Tiles from |
 |---|---|---|
 | 1 | Current Mapbox UNEP Basemap Faint (reference, needs token) | Mapbox |
-| 2a | UNEP Outdoor (original design) | Our PMTiles |
-| 2b | UNEP Outdoor + terrain (elevation tint, stronger hillshade) | Our PMTiles + AWS elevation |
-| 2c | UNEP Outdoor + terrain + OSM parks (may be confused with WDPA) | Our PMTiles + AWS elevation |
+| 2a | UNEP-WCMC Nature (original design) | Our PMTiles |
+| 2b | UNEP-WCMC Nature + terrain (elevation tint, stronger hillshade) | Our PMTiles + AWS elevation |
+| 2c | UNEP-WCMC Nature + terrain + OSM parks (may be confused with WDPA) | Our PMTiles + AWS elevation |
 | 2d | Mapbox replica v2 (tuned) — testing only, see licence warning | Our PMTiles |
 | 2e | Mapbox replica v1 — testing only | Our PMTiles |
 | 2f | Protomaps light + UN boundaries | Our PMTiles |
@@ -49,9 +49,9 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
 | Seagrasses, saltmarshes, coral reefs | data-gis vector tiles | Fast |
 | Night lights (2016) | data-gis `Hosted/Earth_at_Night_2016_3km` | Drawn on the fly: slower |
 
-## Fonts (UNEP Outdoor, self-hosted)
+## Fonts (UNEP-WCMC Nature, self-hosted)
 
-1. **UNEP Outdoor (2a–2c) loads its fonts from `public/maps/fonts/`, not from a third-party server.**
+1. **UNEP-WCMC Nature (2a–2c) loads its fonts from `public/maps/fonts/`, not from a third-party server.**
    - Noto Sans Regular / Medium / Italic (OFL), from Protomaps basemaps-assets.
    - Roboto Condensed SemiBold (OFL / Apache-2.0), from VersaTiles: narrow, DIN-like capitals for country names.
 2. **Only the ranges up to U+2FFF are kept** (Latin, Greek, Cyrillic, punctuation): the map shows English names only.
@@ -85,7 +85,7 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
 1. **Rendered on the server as a plain PNG, like today.** PP pages and the PDF export keep embedding an image; nothing depends on WebGL or vector tiles in the client or the PDF engine.
    - Renderer: MapLibre Native for Node (`@maplibre/maplibre-gl-native`, headless).
    - About 0.7–2 s per thumbnail with a remote PMTiles archive; faster with a local one.
-2. **Style: UNEP Outdoor + terrain, plus seafloor relief and a bathymetry tint.** Same AWS Terrain Tiles DEM as the basemap relief.
+2. **Style: UNEP-WCMC Nature + terrain, plus seafloor relief and a bathymetry tint.** Same AWS Terrain Tiles DEM as the basemap relief.
 3. **The site is drawn from its GeoJSON, with PP's current colours.** Green for terrestrial, blue for marine/coastal.
    - In the playground the GeoJSON comes from the WDPA MapServer; in PP it would be `GeometryConcern#geojson`.
 4. **Sites crossing the antimeridian are framed correctly** (e.g. Papahānaumokuākea, 220201).
