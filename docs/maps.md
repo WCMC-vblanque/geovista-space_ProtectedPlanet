@@ -19,17 +19,24 @@
    - Loaded from cdnjs in `app/views/layouts/partials/_head.html.erb` (global `maplibregl`).
 2. **CSS classes renamed from `.mapboxgl-*` to `.maplibregl-*`.**
 3. **`preserveDrawingBuffer` (PDF export) moved to `canvasContextAttributes`** — MapLibre v5 API.
-4. **Basemaps are now configurable style URLs** (`app/javascript/components/map/default-options.js`).
-   1. **Terrain:** `BASEMAP_TERRAIN_STYLE_URL`.
-      - Target: self-hosted style reading a PMTiles basemap (see §3).
-      - Fallback until published: [OpenFreeMap](https://openfreemap.org) `positron` (free, no key, no limits).
-   2. **Satellite:** Esri World Imagery + Esri boundaries/places labels.
-      - Override with `BASEMAP_SATELLITE_STYLE_URL` (e.g. a style using EOX Sentinel-2 Cloudless WMTS).
-   3. **Both are read at webpack build time** (`dotenv-webpack`) → rebuild assets after changing them.
-5. **PMTiles protocol registered** (`pmtiles@4.5.0`).
+4. **Basemaps must show UN-approved boundaries and labels.**
+   - The previous Mapbox style was "UNEP Basemap (APPROVED - 14/04/21) - Faint", which replaced OSM boundaries and country names with UN ones.
+   - OSM-only basemaps (OpenFreeMap, Protomaps) show non-UN boundaries in disputed areas.
+5. **Default styles are bundled JSON** (`app/javascript/components/map/styles/`).
+   1. **Terrain (`terrain.json`):** OpenFreeMap positron (OSM) without its boundaries and country/state labels, plus UN boundaries/labels.
+      - UN layers come from the UNEP-WCMC ArcGIS vector tiles `Hosted/UN_Boundaries_Labels`.
+      - Background and water colours follow the previous "Faint" style.
+   2. **Satellite (`satellite.json`):** Esri World Imagery plus the same UN boundaries/labels.
+   3. **Regenerate both with `node lib/maps/build-basemap-styles.mjs`** (Node 18+).
+   4. **Fallback without UN boundaries:** OpenFreeMap positron, commented out in `default-options.js`.
+6. **Either style can be replaced by a URL at build time.**
+   1. **Terrain:** `BASEMAP_TERRAIN_STYLE_URL` — target: self-hosted PMTiles style (see §3).
+   2. **Satellite:** `BASEMAP_SATELLITE_STYLE_URL` — e.g. EOX Sentinel-2 Cloudless WMTS.
+   3. **Read at webpack build time** (`dotenv-webpack`) → rebuild assets after changing them.
+7. **PMTiles protocol registered** (`pmtiles@4.5.0`).
    - Styles can use `pmtiles://https://…/basemap.pmtiles` sources directly.
    - No tile server needed: the browser reads byte ranges from object storage.
-6. **Overlays are unchanged.**
+8. **Overlays are unchanged.**
    - WDPA / OECM still come from ArcGIS Server (`data-gis.unep-wcmc.org`, `app/helpers/map_helper.rb`).
    - They are inserted beneath the first `boundary` or label layer of any basemap, or on top if the style has none.
 
@@ -64,7 +71,7 @@
       - Mapbox styles use the Mapbox Streets v8 schema → layers cannot be copied 1:1, only visually matched.
    3. Self-host glyphs (fonts) and sprites next to the PMTiles file.
       - Mapbox fonts and sprites are licensed for Mapbox only.
-   4. Keep a layer id containing `boundary` where overlays should go beneath (see §2.1.6).
+   4. Keep the UN boundary/label layers (see §2.1.4) and a layer id containing `boundary` where overlays should go beneath (see §2.1.8).
 4. **Publish `style.json` and set `BASEMAP_TERRAIN_STYLE_URL` to its URL.**
 
 ## 4. How to test
