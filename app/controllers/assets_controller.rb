@@ -8,18 +8,20 @@ class AssetsController < ApplicationController
     record = send(area_type)
     raise_404 if record.nil?
 
+    source = thumbnail_source
     cache_key = [
       'tiles',
       'image',
       "v#{Rails.application.secrets.mapbox[:version]}",
+      (source unless source == 'mapbox'),
       area_type,
       params[:id].to_s,
       (record.respond_to?(:updated_at) && record.updated_at ? record.updated_at.to_i : 'na')
-    ].join(':')
+    ].compact.join(':')
 
     image = THUMBNAIL_STORE.read(cache_key)
     if image.blank?
-      image = AssetGenerator.send(method_name, record)
+      image = generate_thumbnail(source, method_name, record)
       # Don't persist failures, so they are retried on the next request
       THUMBNAIL_STORE.write(cache_key, image) if image.present?
     end
@@ -31,12 +33,23 @@ class AssetsController < ApplicationController
 
     expires_in 3.days, public: true
 
-    send_data image, type: 'image/png', disposition: 'inline'
+    send_data image, type: image_type(image), disposition: 'inline'
   rescue AssetGenerator::AssetGenerationFailedError
     redirect_to ActionController::Base.helpers.asset_path('search-placeholder-country.png', type: :image)
   end
 
   private
+
+  def generate_thumbnail(source, method_name, record)
+    return AssetGenerator.send(method_name, record) if source == 'mapbox'
+
+    AssetGenerator.arcgis_tile(record, source)
+  end
+
+  # ArcGIS thumbnails are SVGs embedding the PNG layers
+  def image_type(image)
+    image.start_with?('<svg') ? 'image/svg+xml' : 'image/png'
+  end
 
   def protected_area
     @protected_area ||= ProtectedArea.where(site_id: params[:id]).first

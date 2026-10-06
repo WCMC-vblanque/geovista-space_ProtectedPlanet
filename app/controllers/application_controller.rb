@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::Base
+  include MapOptionsPreview
+
   CACHE_FETCH_TTL = 30.days
 
   # Clumsy rescue from fragments custom not null database errors

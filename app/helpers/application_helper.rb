@@ -46,6 +46,10 @@ module ApplicationHelper
   end
 
   def tiles_path(params)
+    # Preview only (MapOptionsPreview): one URL per source, so browser caches
+    # don't mix them up
+    source = respond_to?(:thumbnail_source) ? thumbnail_source : 'mapbox'
+    params = params.merge(thumbnail_source: source) unless source == 'mapbox'
     Rails.application.routes.url_helpers.tiles_path(params)
   end
 
