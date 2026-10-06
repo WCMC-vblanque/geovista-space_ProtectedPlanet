@@ -8,14 +8,14 @@ export default {
       }
 
       this.map.addControl(
-        new mapboxgl.AttributionControl(), 
+        new maplibregl.AttributionControl(), 
         this.controlsOptions.attributionLocation
       )
     },
 
     addZoomControls () {
       this.map.addControl(
-        new mapboxgl.NavigationControl({
+        new maplibregl.NavigationControl({
           showCompass: this.controlsOptions.showCompass
         })
       )

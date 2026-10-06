@@ -10,12 +10,12 @@ export const BASELAYERS_DEFAULT = [
     style: 'mapbox://styles/unepwcmc/ckniq2twg0q3b17s5gqfxhagf'
   }
 ]
-export const RTL_TEXT_PLUGIN_URL = 'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.2.3/mapbox-gl-rtl-text.js'
+export const RTL_TEXT_PLUGIN_URL = 'https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.3.0/dist/mapbox-gl-rtl-text.js'
 export const MAP_OPTIONS_DEFAULT = {
   container: 'map-target',
   scrollZoom: false,
   attributionControl: false,
-  preserveDrawingBuffer: true, // needed for PDF rendering
+  canvasContextAttributes: { preserveDrawingBuffer: true }, // needed for PDF rendering
   zoom: 1.3,
   maxZoom: 10 // Maximum zoom where tiles are cached for the web-map service
   //bounds: [[-180, -90], [180, 90]],

@@ -112,7 +112,7 @@ export default {
       pin.className = 'v-map-pin'
 
       // eslint-disable-next-line no-undef
-      this.popups.push(new mapboxgl.Popup({
+      this.popups.push(new maplibregl.Popup({
         className: 'v-map-pa-popup',
         closeButton: false,
         offset: this.popupOffsets
@@ -123,7 +123,7 @@ export default {
       )
 
       // eslint-disable-next-line no-undef
-      this.markers.push(new mapboxgl.Marker({ element: pin, anchor: 'bottom' })
+      this.markers.push(new maplibregl.Marker({ element: pin, anchor: 'bottom' })
         .setLngLat(coords)
         .addTo(this.map)
       )

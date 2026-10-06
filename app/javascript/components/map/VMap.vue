@@ -48,7 +48,6 @@ export default {
 
   data() {
     return {
-      accessToken: process.env.MAPBOX_ACCESS_TOKEN,
       containerId: MAP_OPTIONS_DEFAULT.container,
       map: {},
     }
@@ -114,14 +113,14 @@ export default {
   methods: {
     initMap() {
       /* eslint-disable no-undef */
-      mapboxgl.accessToken = this.accessToken
-      // Add support for RTL languages
-      mapboxgl.setRTLTextPlugin(
-        RTL_TEXT_PLUGIN_URL, 
-        null, 
-        true // Lazy loading
-      )
-      this.map = new mapboxgl.Map(this.mapOptions)
+      // Add support for RTL languages; can only be set once per page
+      if (maplibregl.getRTLTextPluginStatus() === 'unavailable') {
+        maplibregl.setRTLTextPlugin(
+          RTL_TEXT_PLUGIN_URL,
+          true // Lazy loading
+        )
+      }
+      this.map = new maplibregl.Map(this.mapOptions)
       this.addControls()
       this.addEventHandlersToMap()
     },
@@ -149,10 +148,10 @@ export default {
     },
 
     showLayer(layer) {
-      const mapboxLayer = this.map.getLayer(layer.id)
-      const isVisible = mapboxLayer && mapboxLayer.visibility === 'visible'
+      const mapLayer = this.map.getLayer(layer.id)
+      const isVisible = mapLayer && mapLayer.visibility === 'visible'
 
-      if (!mapboxLayer) {
+      if (!mapLayer) {
         this.addLayerBeneathBoundariesAndLabels(layer)
       } else if (!isVisible) {
         this.setLayerVisibility(layer, true)
