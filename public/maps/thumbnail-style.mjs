@@ -7,10 +7,11 @@
 
 export const THUMB_SIZE = { width: 304, height: 138 }
 
-// Same colours as PP's GeometryConcern#geometry_properties
+// Fills as PP's GeometryConcern#geometry_properties. The marine outline is
+// lighter than PP's (#2E5387) to stand out over dark bathymetry.
 const SITE_COLORS = {
-  marine: { fill: '#3E7BB6', stroke: '#2E5387' },
-  terrestrial: { fill: '#83ad35', stroke: '#40541b' }
+  marine: { fill: '#3E7BB6', stroke: '#d4e6f4', width: 1.25 },
+  terrestrial: { fill: '#83ad35', stroke: '#40541b', width: 0.75 }
 }
 
 const BATHYMETRY = ['interpolate', ['linear'], ['elevation'],
@@ -46,7 +47,7 @@ export function thumbnailStyle (base, site, { marine = false } = {}) {
   const before = style.layers.findIndex(l => l.type === 'symbol')
   style.layers.splice(before, 0,
     { id: 'site-fill', type: 'fill', source: 'site', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': c.fill, 'fill-opacity': 0.7 } },
-    { id: 'site-line', type: 'line', source: 'site', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'line-color': c.stroke, 'line-width': 0.75 } },
+    { id: 'site-line', type: 'line', source: 'site', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'line-color': c.stroke, 'line-width': c.width } },
     { id: 'site-point', type: 'circle', source: 'site', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-color': c.fill, 'circle-radius': 5, 'circle-stroke-color': c.stroke, 'circle-stroke-width': 1 } })
   return style
 }
