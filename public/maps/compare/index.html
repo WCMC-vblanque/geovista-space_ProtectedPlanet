@@ -90,9 +90,9 @@
 </section>
 
 <section id="tab-thumbs" hidden>
-  <label>PA site IDs <input id="site-ids" value="873, 2575, 916" size="30"></label>
+  <label>PA site IDs <input id="site-ids" value="873, 2575, 2628, 220201" size="30"></label>
   <button id="run-thumbs">Render</button>
-  <span class="note">Each row: current PP thumbnail (Mapbox, via protectedplanet.net cache) vs ArcGIS export candidates vs MapLibre client render. Times = load time in this browser.</span>
+  <span class="note">Each row: current PP thumbnail (Mapbox, via protectedplanet.net cache) vs ArcGIS export candidates vs the proposed MapLibre thumbnail (UNEP Outdoor + terrain, seafloor relief, bathymetry, site from GeoJSON), rendered on the server (PNG from <code>lib/maps/render-thumbnail.mjs</code>) and live in this browser (needs the PMTiles URL). Times = load time in this browser.</span>
   <div id="thumbs"></div>
   <div id="render-target"></div>
 </section>
@@ -700,22 +700,34 @@ function timedStack (urls) {
   return { fig, cap }
 }
 
-// One shared offscreen map renders all MapLibre thumbnails in sequence.
-let renderMap
-async function maplibreThumb (id, e) {
+// Same style and framing as the server renderer (../thumbnail-style.mjs).
+// The site is drawn from its GeoJSON, as PP does today: no vector tiles.
+async function siteGeojson (id) {
+  for (const layer of [1, 0]) {   // polygons, then points
+    const fc = await fetch(`${WDPA_MS}/${layer}/query?where=site_id%3D${id}&outFields=realm&outSR=4326&maxAllowableOffset=0.003&geometryPrecision=3&f=geojson`).then(r => r.json())
+    if (fc.features?.length) return fc
+  }
+  throw new Error(`site_id ${id} not found`)
+}
+
+// One shared offscreen map renders all browser thumbnails in sequence.
+let renderMap, thumbBase
+async function maplibreThumb (id) {
+  const { thumbnailStyle, fitCamera, siteBbox } = await import('../thumbnail-style.mjs')
+  thumbBase ??= await previewPmtiles('unep-outdoor-terrain')
+  const t0 = performance.now()
+  const fc = await siteGeojson(id)
+  const style = thumbnailStyle(thumbBase, fc, { marine: fc.features.some(f => f.properties.realm !== 'Terrestrial') })
+  const camera = fitCamera(siteBbox(fc))
   if (!renderMap) {
     renderMap = new maplibregl.Map({
-      container: 'render-target', style: await hybrid(), interactive: false, attributionControl: false,
+      container: 'render-target', style, ...camera, interactive: false, attributionControl: false,
       pixelRatio: 2, canvasContextAttributes: { preserveDrawingBuffer: true }, fadeDuration: 0
     })
-    await renderMap.once('load')
-    renderMap.addSource('wdpca', { type: 'vector', tiles: [`${DG}/Hosted/WDPCA/VectorTileServer/tile/{z}/{y}/{x}.pbf`], maxzoom: 15 })
-    renderMap.addLayer({ id: 'pa-fill', type: 'fill', source: 'wdpca', 'source-layer': 'WDPCA_poly_latest', paint: { 'fill-color': '#38A800', 'fill-opacity': 0.6, 'fill-outline-color': '#2a7d00' } })
-    renderMap.addLayer({ id: 'pa-point', type: 'circle', source: 'wdpca', 'source-layer': 'WDPCA_point_latest', paint: { 'circle-color': '#38A800', 'circle-radius': 5 } })
+  } else {
+    renderMap.setStyle(style)
+    renderMap.jumpTo(camera)
   }
-  const t0 = performance.now()
-  for (const l of ['pa-fill', 'pa-point']) renderMap.setFilter(l, ['==', ['to-number', ['get', 'site_id']], Number(id)])
-  renderMap.fitBounds([[e.xmin, e.ymin], [e.xmax, e.ymax]], { padding: 14, animate: false, maxZoom: 12 })
   await renderMap.once('idle')
   return { src: renderMap.getCanvas().toDataURL('image/png'), ms: Math.round(performance.now() - t0) }
 }
@@ -736,13 +748,17 @@ $('run-thumbs').addEventListener('click', () => {
       add([exportUrl(`${UN}/ClearMap_WebTopo/MapServer`, bbox), overlayUrl(id, bbox)], 'ArcGIS export: UN ClearMap Topo + WDPA')
       add([exportUrl(`${UN}/ClearMap_WebGray/MapServer`, bbox), overlayUrl(id, bbox)], 'ArcGIS export: UN ClearMap Gray + WDPA')
       add([exportUrl(`${ESRI}/World_Imagery/MapServer`, bbox), overlayUrl(id, bbox)], 'ArcGIS export: Esri Imagery + WDPA')
+      const server = timedStack([`../thumbs/${id}.png`])
+      server.cap.textContent = 'Proposed: server render (MapLibre Native PNG)'
+      server.fig.querySelector('img').onerror = () => { server.cap.textContent = `Proposed: server render — not generated yet (cd lib/maps && npm run thumbs -- --pmtiles <url> ${id})` }
+      cells.appendChild(server.fig)
       const fig = document.createElement('figure'); fig.className = 'cell'; fig.style.margin = 0
-      fig.innerHTML = '<div class="stack"></div><figcaption>MapLibre render: hybrid + WDPCA vector tiles — queued…</figcaption>'
+      fig.innerHTML = '<div class="stack"></div><figcaption>Proposed: browser render (MapLibre GL JS) — queued…</figcaption>'
       cells.appendChild(fig)
-      thumbQueue = thumbQueue.then(() => maplibreThumb(id, e)).then(({ src, ms }) => {
+      thumbQueue = thumbQueue.then(() => maplibreThumb(id)).then(({ src, ms }) => {
         fig.querySelector('.stack').innerHTML = `<img alt="" src="${src}">`
-        fig.querySelector('figcaption').textContent = `MapLibre render: hybrid + WDPCA vector tiles — ${ms} ms`
-      }).catch(err => { fig.querySelector('figcaption').textContent = `MapLibre render failed: ${err.message}` })
+        fig.querySelector('figcaption').textContent = `Proposed: browser render (MapLibre GL JS) — ${ms} ms`
+      }).catch(err => { fig.querySelector('figcaption').textContent = `Browser render failed: ${err.message}` })
     }).catch(err => { cells.textContent = err.message })
   }
 })
