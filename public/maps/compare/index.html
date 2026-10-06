@@ -475,7 +475,12 @@ function makeMap (side, key) {
   for (const [k] of NUMBERING) sel.add(new Option(CANDIDATES[k].name, k, false, k === key))
   const map = new maplibregl.Map({ container: `map-${side}`, style: { version: 8, sources: {}, layers: [] }, ...INITIAL_VIEW, maxZoom: 10 })
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }))
-  map.on('style.load', () => { addOverlays(map); buildLegend(side) })
+  map.on('style.load', () => {
+    // Compare every option in the same flat Web Mercator projection
+    map.setProjection({ type: 'mercator' })
+    addOverlays(map)
+    buildLegend(side)
+  })
   map.on('move', () => showView(map))
   map.on('move', () => {
     if (syncing) return
