@@ -1,3 +1,10 @@
+import {
+  WDPCA_POINT_LAYER,
+  WDPCA_POLY_LAYER,
+  WDPCA_SOURCE,
+  WDPCA_SOURCE_ID
+} from '../preview-options'
+
 const addPaintOptions = (options, layer) => {
   if (layer.isPoint) {
     options['type'] = 'circle'
@@ -60,6 +67,39 @@ export default {
 
         this.map.addLayer(options, this.firstForegroundLayerId) 
       }
+    },
+
+    // Map options preview only (?overlays=vector)
+    addVectorTileLayer (layer, vectorOverlay) {
+      if (this.hasExistingMapLayer(layer.id)) { return }
+
+      if (!this.map.getSource(WDPCA_SOURCE_ID)) {
+        this.map.addSource(WDPCA_SOURCE_ID, WDPCA_SOURCE)
+      }
+
+      const common = {
+        source: WDPCA_SOURCE_ID,
+        filter: vectorOverlay.filter,
+        layout: { visibility: 'visible' }
+      }
+      const color = vectorOverlay.color
+
+      this.map.addLayer({
+        ...common, id: layer.id, type: 'fill', 'source-layer': WDPCA_POLY_LAYER,
+        paint: { 'fill-color': color, 'fill-opacity': 0.5 }
+      }, this.firstForegroundLayerId)
+      this.map.addLayer({
+        ...common, id: `${layer.id}__line`, type: 'line', 'source-layer': WDPCA_POLY_LAYER,
+        paint: { 'line-color': color, 'line-width': 0.6 }
+      }, this.firstForegroundLayerId)
+      this.map.addLayer({
+        ...common, id: `${layer.id}__point`, type: 'circle', 'source-layer': WDPCA_POINT_LAYER,
+        paint: {
+          'circle-color': color,
+          'circle-opacity': 0.7,
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 1.5, 6, 2.5, 12, 4.5]
+        }
+      }, this.firstForegroundLayerId)
     },
 
     hasExistingMapLayer (id) {

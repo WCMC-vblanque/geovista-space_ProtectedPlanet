@@ -19,7 +19,11 @@ import {
   RTL_TEXT_PLUGIN_URL
 } from './default-options'
 
-import { loadPreviewBaselayers } from './preview-options'
+import {
+  loadPreviewBaselayers,
+  previewVectorOverlay,
+  VECTOR_SUBLAYER_SUFFIXES
+} from './preview-options'
 import VMapBaselayerControls from './VMapBaselayerControls'
 import mixinAddLayers from './mixins/mixin-add-layers'
 import mixinControls from './mixins/mixin-controls'
@@ -184,7 +188,11 @@ export default {
     },
 
     addLayer(layer) {
-      if (layer.type === 'raster_tile') {
+      const vectorOverlay = previewVectorOverlay(layer)
+
+      if (vectorOverlay) {
+        this.addVectorTileLayer(layer, vectorOverlay)
+      } else if (layer.type === 'raster_tile') {
         this.addRasterTileLayer(layer)
       } else if (layer.type === 'raster_data') {
         this.addRasterDataLayer(layer)
@@ -205,9 +213,11 @@ export default {
       const layerId = layer.id
       const visibility = isVisible ? 'visible' : 'none'
 
-      if (this.map.getLayer(layerId)) {
-        this.map.setLayoutProperty(layerId, 'visibility', visibility)
-      }
+      // Vector overlays (map options preview) span several map layers
+      const ids = [layerId, ...VECTOR_SUBLAYER_SUFFIXES.map(s => `${layerId}${s}`)]
+      ids.filter(id => this.map.getLayer(id)).forEach(id => {
+        this.map.setLayoutProperty(id, 'visibility', visibility)
+      })
     },
 
   }
