@@ -88,6 +88,8 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.0/maplibre-gl.min.js"></script>
 <script src="https://unpkg.com/pmtiles@4.5.0/dist/pmtiles.js"></script>
+<!-- Optional local defaults (git-ignored); see config.local.example.js -->
+<script src="config.local.js" onerror="window.PLAYGROUND_CONFIG = window.PLAYGROUND_CONFIG || {}"></script>
 <script>
 const DG = 'https://data-gis.unep-wcmc.org/server/rest/services'
 const UN = 'https://geoservices.un.org/arcgis/rest/services'
@@ -433,17 +435,27 @@ async function setBasemap (side) {
 
 $('overlay-mode').addEventListener('change', () => ['a', 'b'].forEach(setBasemap))
 $('pp-maxzoom').addEventListener('change', e => Object.values(maps).forEach(m => m.setMaxZoom(e.target.checked ? 10 : 19)))
-$('token').addEventListener('change', () => ['a', 'b'].forEach(s => $(`sel-${s}`).value === 'mapbox' && setBasemap(s)))
+// Defaults: config.local.js (shared by every browser using this server),
+// overridden by what was last typed in this browser
+const CONFIG = window.PLAYGROUND_CONFIG || {}
+const stored = (key) => { try { return localStorage.getItem(key) } catch (e) { return null } }
+const store = (key, value) => { try { localStorage.setItem(key, value) } catch (e) {} }
+$('token').value = stored('mapbox-token') || CONFIG.mapboxToken || ''
+$('pmtiles-url').value = stored('pmtiles-url') || CONFIG.pmtilesUrl || ''
+
+$('token').addEventListener('change', (e) => {
+  store('mapbox-token', e.target.value.trim())
+  ;['a', 'b'].forEach(s => $(`sel-${s}`).value === 'mapbox' && setBasemap(s))
+})
 
 maplibregl.addProtocol('pmtiles', new pmtiles.Protocol().tile)
-try { $('pmtiles-url').value = localStorage.getItem('pmtiles-url') || '' } catch (e) {}
 $('pmtiles-url').addEventListener('change', (e) => {
-  try { localStorage.setItem('pmtiles-url', e.target.value.trim()) } catch (err) {}
+  store('pmtiles-url', e.target.value.trim())
   ;['a', 'b'].forEach(s => $(`sel-${s}`).value.startsWith('pmtiles') && setBasemap(s))
 })
 
 makeMap('a', 'pmtiles-mapbox')
-makeMap('b', 'un-topo')
+makeMap('b', $('token').value ? 'mapbox' : 'un-topo')
 
 // --- Thumbnails -----------------------------------------------------------
 const R = 6378137

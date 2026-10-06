@@ -21,6 +21,13 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
 3. **Self-hosted PMTiles options:** serve an extract with `pmtiles serve` and paste its TileJSON URL (e.g. `http://<host>:8080/basemap-z10.json`) into **PMTiles URL**.
    - Extract: `pmtiles extract https://build.protomaps.com/<YYYYMMDD>.pmtiles basemap-z10.pmtiles --maxzoom=10`
 4. **Current Mapbox style (reference):** paste a temporary public Mapbox token into **Mapbox token**; never commit it.
+5. **Pre-fill the token and PMTiles URL** (optional, like a `.env`):
+   ```bash
+   cd public/maps/compare && cp config.local.example.js config.local.js   # then edit it
+   ```
+   - `config.local.js` is git-ignored; it applies to every browser using this server.
+   - Values typed in the page are remembered per browser and take precedence.
+   - With a token set, the right-hand map opens on the current Mapbox style.
 
 ## Regenerate the styles
 
