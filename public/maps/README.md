@@ -20,10 +20,11 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
 | 1 | Current Mapbox UNEP Basemap Faint (reference, needs token) | Mapbox |
 | 2a | UNEP Outdoor (original design) | Our PMTiles |
 | 2b | UNEP Outdoor + terrain (elevation tint, stronger hillshade) | Our PMTiles + AWS elevation |
-| 2c | Mapbox replica v2 (tuned) — testing only, see licence warning | Our PMTiles |
-| 2d | Mapbox replica v1 — testing only | Our PMTiles |
-| 2e | Protomaps light + UN boundaries | Our PMTiles |
-| 2f | Protomaps light + relief | Our PMTiles |
+| 2c | UNEP Outdoor + terrain + OSM parks (may be confused with WDPA) | Our PMTiles + AWS elevation |
+| 2d | Mapbox replica v2 (tuned) — testing only, see licence warning | Our PMTiles |
+| 2e | Mapbox replica v1 — testing only | Our PMTiles |
+| 2f | Protomaps light + UN boundaries | Our PMTiles |
+| 2g | Protomaps light + relief | Our PMTiles |
 | 3a | Hybrid: OpenFreeMap + UN boundaries | OpenFreeMap |
 | 3b | Hybrid + relief | OpenFreeMap |
 | 4 | VersaTiles muted + UN boundaries | VersaTiles |

@@ -222,13 +222,18 @@ const CANDIDATES = {
   },
   'unep-outdoor': {
     name: 'Self-hosted PMTiles: UNEP Outdoor (original design)',
-    note: '<b class="ok">UN boundaries & labels. Free to use:</b> own palette on Protomaps layers (BSD-3), relief, pale vegetation so PP overlays stay dominant.',
+    note: '<b class="ok">UN boundaries & labels. Free to use:</b> own palette on Protomaps layers (BSD-3), relief, pale vegetation, English names; protection shown only by PP overlays.',
     build: () => previewPmtiles('unep-outdoor')
   },
   'unep-outdoor-terrain': {
     name: 'Self-hosted PMTiles: UNEP Outdoor + terrain (original design)',
     note: '<b class="ok">UN boundaries & labels. Free to use:</b> 2a plus elevation tint (green lowlands, warm uplands, pale peaks) and a stronger multi-directional hillshade.',
     build: () => previewPmtiles('unep-outdoor-terrain')
+  },
+  'unep-outdoor-terrain-osm-parks': {
+    name: 'Self-hosted PMTiles: UNEP Outdoor + terrain + OSM parks',
+    note: '<b class="ok">UN boundaries & labels.</b> As 2b, plus OpenStreetMap national parks/reserves in soft green. <b class="warn">May be confused with WDPA protected areas.</b>',
+    build: () => previewPmtiles('unep-outdoor-terrain-osm-parks')
   },
   'versatiles-muted': {
     name: 'VersaTiles muted (free hosted tiles, MIT) + UN boundaries/labels',
@@ -326,8 +331,8 @@ const CANDIDATES = {
 // Dropdown order and labels: (n) = family, letter = variant of that family
 const NUMBERING = [
   ['mapbox', '1'],
-  ['unep-outdoor', '2a'], ['unep-outdoor-terrain', '2b'],
-  ['pmtiles-mapbox-v2', '2c'], ['pmtiles-mapbox', '2d'], ['pmtiles', '2e'], ['pmtiles-relief', '2f'],
+  ['unep-outdoor', '2a'], ['unep-outdoor-terrain', '2b'], ['unep-outdoor-terrain-osm-parks', '2c'],
+  ['pmtiles-mapbox-v2', '2d'], ['pmtiles-mapbox', '2e'], ['pmtiles', '2f'], ['pmtiles-relief', '2g'],
   ['hybrid', '3a'], ['hybrid-relief', '3b'],
   ['versatiles-muted', '4'],
   ['un-topo', '5a'], ['un-gray', '5b'], ['un-plain', '5c'],
