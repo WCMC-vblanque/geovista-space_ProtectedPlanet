@@ -19,7 +19,9 @@ import {
   RTL_TEXT_PLUGIN_URL
 } from './default-options'
 
+import { PreviewLegendControl } from './preview-legend'
 import {
+  isMapPreviewEnabled,
   loadPreviewBaselayers,
   previewMapOptions,
   previewVectorOverlay,
@@ -145,6 +147,9 @@ export default {
       }
       this.map = new maplibregl.Map(this.mapOptions)
       this.addControls()
+      if (isMapPreviewEnabled()) {
+        this.map.addControl(new PreviewLegendControl(), 'top-left')
+      }
       this.addEventHandlersToMap()
     },
 
