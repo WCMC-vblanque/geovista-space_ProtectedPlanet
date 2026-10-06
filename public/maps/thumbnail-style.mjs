@@ -23,11 +23,12 @@ const BATHYMETRY = ['interpolate', ['linear'], ['elevation'],
  *
  * @param {object} base - UNEP Outdoor + terrain style (needs the `dem` source and a `water` layer).
  * @param {object} site - GeoJSON Feature or FeatureCollection of the site.
- * @param {{marine?: boolean, overlay?: boolean}} [opts] - Marine sites are drawn in blue,
- *   others in green; `overlay: false` only frames the geometry (country and region covers).
+ * @param {{marine?: boolean, overlay?: boolean, places?: object}} [opts] - Marine sites are
+ *   drawn in blue, others in green; `overlay: false` only frames the geometry (country and
+ *   region covers); `places` = Protomaps places as GeoJSON, used for town labels.
  * @returns {object} A new style object.
  */
-export function thumbnailStyle (base, site, { marine = false, overlay = true } = {}) {
+export function thumbnailStyle (base, site, { marine = false, overlay = true, places } = {}) {
   const style = structuredClone(base)
   const water = style.layers.findIndex(l => l.id === 'water')
   // Above the opaque water fill: depth tint, then shaded seafloor
@@ -42,6 +43,7 @@ export function thumbnailStyle (base, site, { marine = false, overlay = true } =
         'hillshade-accent-color': 'rgba(0, 0, 0, 0)'
       }
     })
+  withThumbnailPlaces(style, places)
   if (!overlay) return style
 
   const c = SITE_COLORS[marine ? 'marine' : 'terrestrial']
@@ -52,6 +54,31 @@ export function thumbnailStyle (base, site, { marine = false, overlay = true } =
     { id: 'site-line', type: 'line', source: 'site', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'line-color': c.stroke, 'line-width': c.width } },
     { id: 'site-point', type: 'circle', source: 'site', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-color': c.fill, 'circle-radius': 5, 'circle-stroke-color': c.stroke, 'circle-stroke-width': 1 } })
   return style
+}
+
+// Thumbnails are framed at zoom ~4–7, where the basemap shows no towns
+// (towns from zoom 6, and only if zoom >= 16 - population_rank). Show the
+// nearest towns earlier, as the Mapbox thumbnails do; collisions keep the
+// largest ones. Capitals get their dot from the label layer itself, so a dot
+// never shows without its name at the image edge.
+// Low-zoom Protomaps tiles hold only the largest cities: the server renderer
+// passes `places` read from tiles one zoom deeper than the view.
+const TOWN_RANK_BOOST = 3
+function withThumbnailPlaces (style, places) {
+  const town = style.layers.find(l => l.id === 'places_locality')
+  const capital = style.layers.find(l => l.id === 'places_capital')
+  if (places) {
+    style.sources['thumb-places'] = { type: 'geojson', data: places }
+    for (const l of [town, capital]) if (l) { l.source = 'thumb-places'; delete l['source-layer'] }
+  }
+  if (town) {
+    town.minzoom = 3
+    town.filter = ['all', ['==', ['get', 'kind'], 'locality'], ['!=', ['get', 'capital'], 'yes'],
+      ['>=', ['zoom'], ['-', 16 - TOWN_RANK_BOOST, ['coalesce', ['get', 'population_rank'], 0]]]]
+    town.layout = { ...town.layout, 'icon-image': 'townspot' }
+  }
+  if (capital) capital.paint = { ...capital.paint, 'icon-opacity': 1 }
+  style.layers = style.layers.filter(l => l.id !== 'capital-marker')
 }
 
 const R = 6378137

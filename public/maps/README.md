@@ -95,7 +95,11 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
    npm run thumbs -- --pmtiles https://build.protomaps.com/<YYYYMMDD>.pmtiles 873 2575 2628 220201
    ```
    - Output: `public/maps/thumbs/<site_id>.png` (608×276, @2x of 304×138).
-6. **Marine outlines are lighter than PP's today (`#d4e6f4`)** so they stand out over dark bathymetry.
+6. **Nearby towns are labelled, as on the Mapbox thumbnails.**
+   - The basemap hides towns before zoom 6; thumbnails (zoom ~4–7) show them by population rank.
+   - The server renderer reads towns from tiles one zoom deeper than the view: low-zoom tiles hold only the largest cities.
+   - The browser render in the playground skips that step, so it shows fewer towns than the server PNG.
+7. **Marine outlines are lighter than PP's today (`#d4e6f4`)** so they stand out over dark bathymetry.
    - Internal lines of multi-part sites (e.g. Great Barrier Reef zones) are kept; outer-edge-only is tracked in an issue.
 
 ### Thumbnail service (drop-in for Mapbox Static Images)
