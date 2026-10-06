@@ -98,8 +98,10 @@
       | `esri-labels` | Esri World Imagery + Esri boundaries/places | **No** |
       | `eox-2025` | EOX Sentinel-2 Cloudless 2025 + UN layers (CC BY-NC-SA) | Yes |
 
-   5. **Example:** `/?basemap=pmtiles-relief&satellite=eox-2025&pmtiles=http://pve01:8080/basemap-z10.json`
-   6. **Unknown style or missing PMTiles URL:** the defaults are kept and a `[map preview]` warning is logged in the browser console.
+   5. **`?overlays=vector`** replaces the WDPA/OECM raster overlays (cached to zoom 10 only) with the ArcGIS `Hosted/WDPCA` vector tiles (to zoom 16).
+   6. **`?maxzoom=<0-22>`** overrides the maximum zoom (default 10); combine with `?overlays=vector` to see overlays past zoom 10.
+   7. **Example:** `/?basemap=pmtiles-relief&satellite=eox-2025&overlays=vector&maxzoom=14&pmtiles=http://<test-server>:8080/basemap-z14.json`
+   8. **Unknown style or missing PMTiles URL:** the defaults are kept and a `[map preview]` warning is logged in the browser console.
 3. **Thumbnails: add `?thumbnail_source=<source>` to any page.**
    1. **Sources:** `mapbox` (current), `arcgis-clearmap-topo` (UN ClearMap Topo + site), `arcgis-esri-imagery` (Esri imagery + site).
    2. **Remembered in the session** until changed; `?thumbnail_source=` (empty) resets it.
