@@ -257,7 +257,7 @@ const CANDIDATES = {
     build: () => raster(`${UN}/ClearMap_WebPlain/MapServer/tile/{z}/{y}/{x}`, UN_ATTR)
   },
   positron: {
-    name: 'OpenFreeMap positron (current interim fallback)',
+    name: 'OpenFreeMap positron (OSM only)',
     note: '<b class="warn">OSM boundaries & names — not UN-compliant</b> (e.g. disputed areas). Free, no key.',
     build: () => POSITRON
   },
@@ -294,6 +294,19 @@ const CANDIDATES = {
     }
   }
 }
+
+// Dropdown order and labels: (n) = family, letter = variant of that family
+const NUMBERING = [
+  ['mapbox', '1'],
+  ['unep-outdoor', '2a'], ['pmtiles-mapbox-v2', '2b'], ['pmtiles-mapbox', '2c'], ['pmtiles', '2d'], ['pmtiles-relief', '2e'],
+  ['hybrid', '3a'], ['hybrid-relief', '3b'],
+  ['versatiles-muted', '4'],
+  ['un-topo', '5a'], ['un-gray', '5b'], ['un-plain', '5c'],
+  ['wcmc-template', '6a'], ['wcmc-unbnd', '6b'],
+  ['positron', '7'],
+  ['sat-esri-un', '8a'], ['sat-esri', '8b'], ['sat-eox', '8c']
+]
+for (const [key, number] of NUMBERING) CANDIDATES[key].name = `(${number}) ${CANDIDATES[key].name}`
 
 // --- Overlays, as PP adds them (ArcGIS raster tiles beneath labels) -------
 const OVERLAYS = [
@@ -425,7 +438,7 @@ let syncing = false
 
 function makeMap (side, key) {
   const sel = $(`sel-${side}`)
-  for (const [k, c] of Object.entries(CANDIDATES)) sel.add(new Option(c.name, k, false, k === key))
+  for (const [k] of NUMBERING) sel.add(new Option(CANDIDATES[k].name, k, false, k === key))
   const map = new maplibregl.Map({ container: `map-${side}`, style: { version: 8, sources: {}, layers: [] }, center: [20, 5], zoom: 1.3, maxZoom: 10 })
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }))
   map.on('style.load', () => { addOverlays(map); buildLegend(side) })
@@ -473,8 +486,9 @@ $('pmtiles-url').addEventListener('change', (e) => {
   ;['a', 'b'].forEach(s => $(`sel-${s}`).value.startsWith('pmtiles') && setBasemap(s))
 })
 
-makeMap('a', 'unep-outdoor')
-makeMap('b', $('token').value ? 'mapbox' : 'un-topo')
+// Left: current Mapbox map (reference); right: the original UNEP Outdoor
+makeMap('a', 'mapbox')
+makeMap('b', 'unep-outdoor')
 
 // --- Thumbnails -----------------------------------------------------------
 const R = 6378137
