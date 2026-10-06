@@ -225,6 +225,11 @@ const CANDIDATES = {
     note: '<b class="ok">UN boundaries & labels. Free to use:</b> own palette on Protomaps layers (BSD-3), relief, pale vegetation so PP overlays stay dominant.',
     build: () => previewPmtiles('unep-outdoor')
   },
+  'unep-outdoor-terrain': {
+    name: 'Self-hosted PMTiles: UNEP Outdoor + terrain (original design)',
+    note: '<b class="ok">UN boundaries & labels. Free to use:</b> 2a plus elevation tint (green lowlands, warm uplands, pale peaks) and a stronger multi-directional hillshade.',
+    build: () => previewPmtiles('unep-outdoor-terrain')
+  },
   'versatiles-muted': {
     name: 'VersaTiles muted (free hosted tiles, MIT) + UN boundaries/labels',
     note: '<b class="ok">UN boundaries & labels.</b> Not our PMTiles: uses the free VersaTiles tile server (OSM, Shortbread schema).',
@@ -321,7 +326,8 @@ const CANDIDATES = {
 // Dropdown order and labels: (n) = family, letter = variant of that family
 const NUMBERING = [
   ['mapbox', '1'],
-  ['unep-outdoor', '2a'], ['pmtiles-mapbox-v2', '2b'], ['pmtiles-mapbox', '2c'], ['pmtiles', '2d'], ['pmtiles-relief', '2e'],
+  ['unep-outdoor', '2a'], ['unep-outdoor-terrain', '2b'],
+  ['pmtiles-mapbox-v2', '2c'], ['pmtiles-mapbox', '2d'], ['pmtiles', '2e'], ['pmtiles-relief', '2f'],
   ['hybrid', '3a'], ['hybrid-relief', '3b'],
   ['versatiles-muted', '4'],
   ['un-topo', '5a'], ['un-gray', '5b'], ['un-plain', '5c'],
@@ -382,7 +388,8 @@ const SOURCE_LAYER_NAMES = {
 }
 const OPACITY_PROPS = {
   fill: ['fill-opacity'], line: ['line-opacity'], symbol: ['text-opacity', 'icon-opacity'], raster: ['raster-opacity'],
-  circle: ['circle-opacity', 'circle-stroke-opacity'], background: ['background-opacity'], hillshade: ['hillshade-exaggeration']
+  circle: ['circle-opacity', 'circle-stroke-opacity'], background: ['background-opacity'], hillshade: ['hillshade-exaggeration'],
+  'color-relief': ['color-relief-opacity']
 }
 const DEFAULT_OPACITY = { 'hillshade-exaggeration': 0.5 }
 
@@ -391,6 +398,7 @@ function groupName (layer) {
   if (layer.id.startsWith('ov-oecm')) return 'Overlay: OECMs'
   if (layer.type === 'background') return 'Background'
   if (layer.type === 'hillshade') return 'Relief (hillshade)'
+  if (layer.type === 'color-relief') return 'Relief (elevation tint)'
   if (layer.id.startsWith('national-park')) return 'National parks (OSM)'
   if (layer.source === 'un' || /^UNGIWG|^Countries|^Administrative|^Major Lakes|^Unsettled|^graticule|^sea_shade/.test(layer.id)) {
     return layer.type === 'symbol' ? 'UN labels' : layer.type === 'line' ? 'UN boundaries & lines' : 'UN areas'
