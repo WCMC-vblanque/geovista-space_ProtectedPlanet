@@ -33,6 +33,20 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
 | 7 | OpenFreeMap positron (OSM boundaries, not UN-compliant) | OpenFreeMap |
 | 8a–c | Satellite: Esri + UN / Esri + Esri labels / EOX Cloudless 2025 + UN | Esri, EOX |
 
+## Context layers (legend, off by default)
+
+**Shown in the legend's "Context layers" section; nothing is requested until a layer is ticked.**
+
+| Layer | Source | Notes |
+|---|---|---|
+| Bathymetry (ocean depth) | AWS Terrain Tiles (free) | Blue depth tint over oceans |
+| EEZ boundaries | data-gis `ProtectedPlanet/EEZ_WVS` | Drawn on the fly (no tile cache): slower |
+| Land cover 10 m (Esri, 2020) | data-gis `ESRI_LC10m_mosaic_tif` | Drawn on the fly: slower |
+| Terrestrial ecoregions | data-gis `Hosted/Terrestrial_Ecoregions_of_the_World` | Drawn on the fly: slower |
+| Mangroves (GMW 2020) | data-gis `Hosted/Global_Mangrove_Watch` | Drawn on the fly: slower |
+| Seagrasses, saltmarshes, coral reefs | data-gis vector tiles | Fast |
+| Night lights (2016) | data-gis `Hosted/Earth_at_Night_2016_3km` | Drawn on the fly: slower |
+
 ## Licence warning
 
 **The "Mapbox UNEP Faint replica" options are for testing only.** The original Mapbox style was built from the Mapbox Outdoors template, which falls under Mapbox's service terms. Check before production: [issue #2](https://github.com/WCMC-vblanque/geovista-space_ProtectedPlanet/issues/2).

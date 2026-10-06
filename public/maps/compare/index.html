@@ -363,6 +363,76 @@ function firstForegroundLayerId (map) {
   return symbol
 }
 
+// --- Context layers (off by default; nothing is requested until shown) ----
+// ArcGIS map services on data-gis have no tile cache: tiles are drawn on
+// the fly with `export` (slower, loads the server); vector tile services
+// are fast. Bathymetry uses the same free AWS elevation data as the relief.
+const exportTiles = (service, extra = '') =>
+  `${DG}/${service}/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=512,512&format=png32&transparent=true&dpi=96&f=image${extra}`
+
+const CONTEXT_LAYERS = [
+  {
+    key: 'bathymetry',
+    label: 'Bathymetry (ocean depth)',
+    add: (map, before) => {
+      map.addSource('ctx-dem', {
+        type: 'raster-dem', encoding: 'terrarium', tileSize: 256, maxzoom: 15,
+        tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+        attribution: 'Bathymetry: <a href="https://registry.opendata.aws/terrain-tiles/">AWS Terrain Tiles</a>'
+      })
+      map.addLayer({
+        id: 'ctx-bathymetry', type: 'color-relief', source: 'ctx-dem', layout: { visibility: 'none' },
+        paint: {
+          'color-relief-color': ['interpolate', ['linear'], ['elevation'],
+            -8000, 'rgba(20, 62, 112, 0.55)', -4000, 'rgba(35, 92, 145, 0.45)', -1000, 'rgba(65, 125, 172, 0.32)',
+            -200, 'rgba(105, 160, 198, 0.2)', -1, 'rgba(150, 195, 220, 0.06)', 0, 'rgba(0, 0, 0, 0)'],
+          'color-relief-opacity': 1
+        }
+      }, before)
+    }
+  },
+  { key: 'eez', label: 'EEZ boundaries', raster: exportTiles('ProtectedPlanet/EEZ_WVS/MapServer'), opacity: 1 },
+  { key: 'landcover', label: 'Land cover 10 m (Esri, 2020)', raster: exportTiles('ESRI_LC10m_mosaic_tif/MapServer'), opacity: 0.6 },
+  { key: 'ecoregions', label: 'Terrestrial ecoregions', raster: exportTiles('Hosted/Terrestrial_Ecoregions_of_the_World/MapServer'), opacity: 0.5 },
+  { key: 'mangroves', label: 'Mangroves (GMW 2020)', raster: exportTiles('Hosted/Global_Mangrove_Watch/MapServer', '&layers=show:0'), opacity: 0.9 },
+  { key: 'seagrass', label: 'Seagrasses', vts: 'Global_Distribution_of_Seagrasses', color: '#2e8b57' },
+  { key: 'saltmarsh', label: 'Saltmarshes', vts: 'Global_Distribution_of_Saltmarshes', color: '#8a7f3d' },
+  { key: 'coral', label: 'Coral reefs', vts: 'Global_Distribution_of_Coral_Reefs', color: '#e0607e' },
+  { key: 'nightlights', label: 'Night lights (2016)', raster: exportTiles('Hosted/Earth_at_Night_2016_3km/MapServer'), opacity: 0.7 }
+]
+const CONTEXT_LABELS = Object.fromEntries(CONTEXT_LAYERS.map(c => [c.key, c.label]))
+
+const vtsStyles = {}
+async function vtsStyle (service) {
+  if (!vtsStyles[service]) vtsStyles[service] = arcgisVts(service).catch(() => null)
+  return vtsStyles[service]
+}
+
+async function addContextLayers (map) {
+  const before = firstForegroundLayerId(map)
+  for (const c of CONTEXT_LAYERS) {
+    const id = `ctx-${c.key}`
+    if (c.add) { c.add(map, before); continue }
+    if (c.raster) {
+      map.addSource(id, { type: 'raster', tiles: [c.raster], tileSize: 512, attribution: 'UNEP-WCMC' })
+      map.addLayer({ id, type: 'raster', source: id, layout: { visibility: 'none' }, paint: { 'raster-opacity': c.opacity } }, before)
+      continue
+    }
+    const style = await vtsStyle(c.vts)
+    if (!style || !map.getStyle()) continue
+    map.addSource(id, style.sources.esri)
+    style.layers.forEach((l, i) => {
+      // Points drawn as circles: the service sprites are not loaded here
+      const layer = l.type === 'symbol' || l.type === 'circle'
+        ? { id: `${id}-${i}`, type: 'circle', source: id, 'source-layer': l['source-layer'], paint: { 'circle-color': c.color, 'circle-radius': 3, 'circle-stroke-color': '#fff', 'circle-stroke-width': 0.5 } }
+        : { ...l, id: `${id}-${i}`, source: id, paint: { 'fill-color': c.color, 'fill-opacity': 0.7, 'fill-outline-color': c.color } }
+      if (l.filter) layer.filter = l.filter
+      layer.layout = { visibility: 'none' }
+      map.addLayer(layer, before)
+    })
+  }
+}
+
 function addOverlays (map) {
   const before = firstForegroundLayerId(map)
   if ($('overlay-mode').value === 'vector') {
@@ -401,6 +471,7 @@ const DEFAULT_OPACITY = { 'hillshade-exaggeration': 0.5 }
 function groupName (layer) {
   if (layer.id.startsWith('ov-wdpa')) return 'Overlay: Protected areas (WDPA)'
   if (layer.id.startsWith('ov-oecm')) return 'Overlay: OECMs'
+  if (layer.id.startsWith('ctx-')) return `Context: ${CONTEXT_LABELS[layer.id.split('-')[1]]}`
   if (layer.type === 'background') return 'Background'
   if (layer.type === 'hillshade') return 'Relief (hillshade)'
   if (layer.type === 'color-relief') return 'Relief (elevation tint)'
@@ -453,12 +524,17 @@ function buildLegend (side) {
   }
   // "Protected areas & OECMs" section first, then basemap groups top to bottom
   const isOverlay = (name) => name.startsWith('Overlay: ')
+  const isContext = (name) => name.startsWith('Context: ')
+  const rank = (name) => (isOverlay(name) ? 2 : isContext(name) ? 1 : 0)
+  const contextOrder = Object.values(CONTEXT_LABELS)
   const names = [...groups.keys()].reverse()
-  names.sort((x, y) => isOverlay(y) - isOverlay(x) || (isOverlay(x) && y.includes('Protected areas') - x.includes('Protected areas')))
+  names.sort((x, y) => rank(y) - rank(x) ||
+    (isOverlay(x) && y.includes('Protected areas') - x.includes('Protected areas')) ||
+    (isContext(x) && contextOrder.indexOf(x.slice(9)) - contextOrder.indexOf(y.slice(9))))
   rows.innerHTML = ''
   let section = null
   for (const name of names) {
-    const heading = isOverlay(name) ? 'Protected areas & OECMs' : 'Basemap'
+    const heading = isOverlay(name) ? 'Protected areas & OECMs' : isContext(name) ? 'Context layers' : 'Basemap'
     if (heading !== section) {
       section = heading
       const head = document.createElement('div')
@@ -467,8 +543,8 @@ function buildLegend (side) {
       rows.appendChild(head)
     }
     // Overlays start hidden, to look at the basemaps first
-    const st = legendState[side][name] || (legendState[side][name] = { visible: !isOverlay(name), opacity: 100 })
-    const label = name.replace('Overlay: ', '')
+    const st = legendState[side][name] || (legendState[side][name] = { visible: !isOverlay(name) && !isContext(name), opacity: 100 })
+    const label = name.replace(/^(Overlay|Context): /, '')
     const row = document.createElement('div')
     row.className = 'row'
     row.innerHTML = `<label title="${label}"><input type="checkbox" ${st.visible ? 'checked' : ''}> ${label}</label>` +
@@ -517,9 +593,10 @@ function makeMap (side, key) {
   for (const [k] of NUMBERING) sel.add(new Option(CANDIDATES[k].name, k, false, k === key))
   const map = new maplibregl.Map({ container: `map-${side}`, style: { version: 8, sources: {}, layers: [] }, ...INITIAL_VIEW, maxZoom: maxZoom() })
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }))
-  map.on('style.load', () => {
+  map.on('style.load', async () => {
     // Compare every option in the same flat Web Mercator projection
     map.setProjection({ type: 'mercator' })
+    await addContextLayers(map)
     addOverlays(map)
     buildLegend(side)
   })
