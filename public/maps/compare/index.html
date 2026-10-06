@@ -197,6 +197,20 @@ const CANDIDATES = {
     note: '<b class="ok">UN boundaries & labels.</b> Adds hillshade (AWS Terrain Tiles, free) like the current style.',
     build: async () => withRelief(await hybrid())
   },
+  'unep-outdoor': {
+    name: 'Self-hosted PMTiles: UNEP Outdoor (original design)',
+    note: '<b class="ok">UN boundaries & labels. Free to use:</b> own palette on Protomaps layers (BSD-3), relief, pale vegetation so PP overlays stay dominant.',
+    build: () => previewPmtiles('unep-outdoor')
+  },
+  'versatiles-muted': {
+    name: 'VersaTiles muted (free hosted tiles, MIT) + UN boundaries/labels',
+    note: '<b class="ok">UN boundaries & labels.</b> Not our PMTiles: uses the free VersaTiles tile server (OSM, Shortbread schema).',
+    build: async () => {
+      const res = await fetch('../preview/versatiles-muted.json')
+      if (!res.ok) throw new Error('Preview styles not found: serve the public/maps folder and open /compare/.')
+      return res.json()
+    }
+  },
   'pmtiles-mapbox-v2': {
     name: 'Self-hosted PMTiles: Mapbox UNEP Faint replica v2 (tuned)',
     note: '<b class="ok">UN boundaries & labels.</b> v1 tuned on Mapbox screenshots: capitals only (to zoom 8), no roads before zoom 5, no borders at world view, green forests. <b class="warn">Testing only: licence to check (issue #2).</b>',
@@ -459,7 +473,7 @@ $('pmtiles-url').addEventListener('change', (e) => {
   ;['a', 'b'].forEach(s => $(`sel-${s}`).value.startsWith('pmtiles') && setBasemap(s))
 })
 
-makeMap('a', 'pmtiles-mapbox-v2')
+makeMap('a', 'unep-outdoor')
 makeMap('b', $('token').value ? 'mapbox' : 'un-topo')
 
 // --- Thumbnails -----------------------------------------------------------
