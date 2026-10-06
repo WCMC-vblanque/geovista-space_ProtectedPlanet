@@ -2,7 +2,7 @@
   <div class="v-map">
     <div :id="containerId" class="map__mapbox" />
     <v-map-baselayer-controls
-      v-if="controlsOptions.showBaselayerControls"
+      v-if="controlsOptions.showBaselayerControls && areBaselayersResolved"
       :baselayers="baselayers"
     />
   </div>
@@ -19,6 +19,7 @@ import {
   RTL_TEXT_PLUGIN_URL
 } from './default-options'
 
+import { loadPreviewBaselayers } from './preview-options'
 import VMapBaselayerControls from './VMapBaselayerControls'
 import mixinAddLayers from './mixins/mixin-add-layers'
 import mixinControls from './mixins/mixin-controls'
@@ -53,12 +54,16 @@ export default {
     return {
       containerId: MAP_OPTIONS_DEFAULT.container,
       map: {},
+      // Baselayer controls write the first baselayer to the store when
+      // created, so they wait until preview baselayers (if any) are loaded
+      areBaselayersResolved: false,
+      previewBaselayers: null
     }
   },
 
   computed: {
     baselayers() {
-      return this.options.baselayers || BASELAYERS_DEFAULT
+      return this.previewBaselayers || this.options.baselayers || BASELAYERS_DEFAULT
     },
 
     controlsOptions() {
@@ -110,7 +115,11 @@ export default {
   },
 
   mounted() {
-    this.initBoundingBoxAndMap()
+    loadPreviewBaselayers(this.baselayers).then(previewBaselayers => {
+      this.previewBaselayers = previewBaselayers
+      this.areBaselayersResolved = true
+      this.initBoundingBoxAndMap()
+    })
   },
 
   methods: {
