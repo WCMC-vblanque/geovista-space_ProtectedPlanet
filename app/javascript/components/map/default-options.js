@@ -1,38 +1,19 @@
-const ESRI_ATTRIBUTION = 'Tiles &copy; <a href="https://www.esri.com">Esri</a> &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
-const ESRI_TILES = 'https://server.arcgisonline.com/ArcGIS/rest/services'
+// Default styles: UN-approved boundaries/labels from UNEP-WCMC ArcGIS on
+// top of OSM (terrain) or Esri World Imagery (satellite).
+// Regenerate with `node lib/maps/build-basemap-styles.mjs`.
+import TERRAIN_STYLE from './styles/terrain.json'
+import SATELLITE_STYLE from './styles/satellite.json'
 
-// Imagery with Esri boundaries/places labels on top. The label layer id
-// contains 'boundary' so overlays are inserted beneath it (see mixin-layers).
-const SATELLITE_STYLE = {
-  version: 8,
-  sources: {
-    'esri-imagery': {
-      type: 'raster',
-      tiles: [`${ESRI_TILES}/World_Imagery/MapServer/tile/{z}/{y}/{x}`],
-      tileSize: 256,
-      maxzoom: 19,
-      attribution: ESRI_ATTRIBUTION
-    },
-    'esri-reference': {
-      type: 'raster',
-      tiles: [`${ESRI_TILES}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`],
-      tileSize: 256,
-      maxzoom: 19
-    }
-  },
-  layers: [
-    { id: 'satellite-imagery', type: 'raster', source: 'esri-imagery' },
-    { id: 'reference-boundary-places', type: 'raster', source: 'esri-reference' }
-  ]
-}
+// Fallback without UN boundaries (OSM boundaries and names, not UN-compliant):
+// const TERRAIN_STYLE = 'https://tiles.openfreemap.org/styles/positron'
 
-// Self-hosted style (PMTiles basemap) set at build time via .env.
-// Falls back to OpenFreeMap (free, no key) until it is published.
+// Either style can be replaced at build time via .env, e.g. by the
+// self-hosted PMTiles style.
 export const BASELAYERS_DEFAULT = [
   {
     id: 'terrain',
     name: 'Terrain',
-    style: process.env.BASEMAP_TERRAIN_STYLE_URL || 'https://tiles.openfreemap.org/styles/positron'
+    style: process.env.BASEMAP_TERRAIN_STYLE_URL || TERRAIN_STYLE
   },
   {
     id: 'satellite',
