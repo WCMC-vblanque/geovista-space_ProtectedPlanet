@@ -38,6 +38,7 @@ git submodule update --init --recursive
 11. [Relationships between Protected Areas and Parcels](docs/protected_area_parcels.md)
 12. [Green List Functionality](docs/green_list.md)
 13. [DB Connection between PP and Data Management Portal (FDW) Setup](docs/fdw_setup/index.md)
+14. [Maps: MapLibre, self-hosted basemap and cost savings](docs/maps.md)
 14. [Banner system](docs/banner_system.md)
 
 ## Licence
