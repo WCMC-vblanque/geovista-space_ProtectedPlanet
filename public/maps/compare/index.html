@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PP Basemap Comparison</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.0/maplibre-gl.min.css">
+<style>
+  :root {
+    --bg: #f6f6f4; --fg: #1d1d1b; --muted: #6b6b66; --line: #d9d9d4; --card: #fff;
+    --accent: #38A800; --warn: #b54708; --ok: #027a48;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #161615; --fg: #ececea; --muted: #a3a39e; --line: #33332f; --card: #1f1f1d;
+      --warn: #f79009; --ok: #32d583;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 16px; margin: 0 12px 0 0; }
+  button, select, input { font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+  button.tab[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+  label { display: inline-flex; gap: 6px; align-items: center; }
+  .spacer { flex: 1; }
+  section[hidden] { display: none !important; }
+  #tab-basemaps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px 16px 16px; height: calc(100vh - 56px); }
+  .pane { display: flex; flex-direction: column; min-height: 0; }
+  .pane .bar { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .pane select { flex: 1; min-width: 0; }
+  .note { font-size: 12px; color: var(--muted); min-height: 36px; margin-bottom: 6px; }
+  .note b.ok { color: var(--ok); } .note b.warn { color: var(--warn); }
+  .map { flex: 1; min-height: 260px; border: 1px solid var(--line); border-radius: 6px; }
+  #tab-thumbs { padding: 12px 16px; }
+  #thumbs { display: grid; gap: 16px; margin-top: 12px; }
+  .row { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  .row h3 { margin: 0 0 8px; font-size: 14px; }
+  .cells { display: grid; grid-template-columns: repeat(auto-fill, minmax(304px, 1fr)); gap: 10px; }
+  .cell figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .stack { position: relative; width: 304px; height: 138px; background: #e8e8e4; border-radius: 4px; overflow: hidden; }
+  .stack img { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #render-target { position: absolute; left: -10000px; top: 0; width: 304px; height: 138px; }
+  @media (max-width: 760px) {
+    #tab-basemaps { grid-template-columns: 1fr; height: auto; }
+    .map { height: 50vh; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>PP basemap &amp; thumbnail comparison</h1>
+  <button class="tab" data-tab="basemaps" aria-selected="true">Basemaps</button>
+  <button class="tab" data-tab="thumbs" aria-selected="false">Thumbnails</button>
+  <span class="spacer"></span>
+  <label><input type="checkbox" id="ov-wdpa" checked> WDPA</label>
+  <label><input type="checkbox" id="ov-oecm" checked> OECM</label>
+  <label><input type="checkbox" id="pp-maxzoom" checked> PP max zoom 10</label>
+  <label title="A .pmtiles URL, or the TileJSON URL printed by `pmtiles serve` (e.g. http://pve01:8080/basemap-z10.json)">
+    PMTiles URL <input id="pmtiles-url" placeholder="http://pve01:8080/basemap-z10.json" size="22">
+  </label>
+  <label title="Only needed for the 'Current Mapbox' option. Use a token without URL restrictions; billed as Static Tiles API.">
+    Mapbox token <input id="token" type="password" placeholder="optional" size="14">
+  </label>
+</header>
+
+<section id="tab-basemaps">
+  <div class="pane"><div class="bar"><select id="sel-a"></select></div><div class="note" id="note-a"></div><div class="map" id="map-a"></div></div>
+  <div class="pane"><div class="bar"><select id="sel-b"></select></div><div class="note" id="note-b"></div><div class="map" id="map-b"></div></div>
+</section>
+
+<section id="tab-thumbs" hidden>
+  <label>PA site IDs <input id="site-ids" value="873, 2575, 916" size="30"></label>
+  <button id="run-thumbs">Render</button>
+  <span class="note">Each row: current PP thumbnail (Mapbox, via protectedplanet.net cache) vs ArcGIS export candidates vs MapLibre client render. Times = load time in this browser.</span>
+  <div id="thumbs"></div>
+  <div id="render-target"></div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.0/maplibre-gl.min.js"></script>
+<script src="https://unpkg.com/pmtiles@4.5.0/dist/pmtiles.js"></script>
+<script src="styles/pmtiles-faint.js"></script>
+<script>
+const DG = 'https://data-gis.unep-wcmc.org/server/rest/services'
+const UN = 'https://geoservices.un.org/arcgis/rest/services'
+const WDPA_MS = `${DG}/ProtectedSites/The_World_Database_of_Protected_Areas/MapServer`
+const OECM_MS = `${DG}/ProtectedSites/The_World_Database_on_other_effective_area_based_conservation_measures/MapServer`
+const POSITRON = 'https://tiles.openfreemap.org/styles/positron'
+const MAPBOX_STYLE = 'unepwcmc/cko1hsfi50vog17l697cr4d6p'
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services'
+const UN_ATTR = 'Produced by <a href="https://geoportal.un.org/arcgis/home/item.html?id=541557fd0d4d42efb24449be614e6887">United Nations Geospatial</a>'
+const $ = (id) => document.getElementById(id)
+
+// --- Basemap candidates --------------------------------------------------
+const raster = (tiles, attribution, extra = {}) => ({
+  version: 8,
+  sources: { base: { type: 'raster', tiles: [].concat(tiles), tileSize: 256, attribution, ...extra } },
+  layers: [{ id: 'base', type: 'raster', source: 'base' }]
+})
+
+// ArcGIS VectorTileServer root.json uses relative URLs; make them absolute.
+async function arcgisVts (service) {
+  const base = `${DG}/Hosted/${service}/VectorTileServer`
+  const [meta, style] = await Promise.all([
+    fetch(`${base}?f=json`).then(r => r.json()),
+    fetch(`${base}/resources/styles/root.json`).then(r => r.json())
+  ])
+  style.sources = { esri: { type: 'vector', tiles: [`${base}/tile/{z}/{y}/{x}.pbf`], maxzoom: meta.maxLOD ?? 14, attribution: 'UNEP-WCMC, UN Geospatial' } }
+  style.glyphs = `${base}/resources/fonts/{fontstack}/{range}.pbf`
+  style.sprite = `${base}/resources/sprites/sprite`
+  return style
+}
+
+// Adds UN boundaries (beneath the first label) and UN labels (on top) from
+// WCMC ArcGIS. The style's glyphs must provide 'Noto Sans Regular'.
+async function withUn (style) {
+  const un = await arcgisVts('UN_Boundaries_Labels')
+  style.sources.un = un.sources.esri
+  const keep = un.layers.filter(l => l.type !== 'circle' && l['source-layer'] !== 'Major_Lakes')
+  const lines = keep.filter(l => l.type === 'line').map(l => ({ ...l, id: `un-boundary-${l.id}`, source: 'un' }))
+  const labels = keep.filter(l => l.type === 'symbol').map(l => ({
+    ...l, id: `un-label-${l.id}`, source: 'un', layout: { ...l.layout, 'text-font': ['Noto Sans Regular'] }
+  }))
+  style.layers.splice(style.layers.findIndex(l => l.type === 'symbol'), 0, ...lines)
+  style.layers.push(...labels)
+  return style
+}
+
+// Hillshade from the free AWS Terrain Tiles (terrarium), beneath water.
+function withRelief (style) {
+  style.sources.dem = {
+    type: 'raster-dem', encoding: 'terrarium', tileSize: 256, maxzoom: 15,
+    tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+    attribution: 'Terrain: <a href="https://registry.opendata.aws/terrain-tiles/">AWS Terrain Tiles</a>'
+  }
+  const water = style.layers.findIndex(l => l.id === 'water')
+  style.layers.splice(water, 0, {
+    id: 'hillshade', type: 'hillshade', source: 'dem',
+    paint: { 'hillshade-shadow-color': 'hsl(65, 35%, 21%)', 'hillshade-highlight-color': '#ffffff', 'hillshade-exaggeration': 0.25 }
+  })
+  return style
+}
+
+// OSM physical basemap + UN boundaries/labels from WCMC ArcGIS; prototype of
+// the self-hosted target (positron would become our own PMTiles style).
+async function hybrid () {
+  const pos = await fetch(POSITRON).then(r => r.json())
+  pos.layers = pos.layers.filter(l => !/^(boundary_|label_country|label_state|label_other)/.test(l.id))
+  for (const l of pos.layers) {   // "Faint" palette from the Mapbox UNEP style
+    if (l.id === 'background') l.paint = { 'background-color': 'hsl(35, 25%, 93%)' }
+    if (l.id === 'water') l.paint = { ...l.paint, 'fill-color': '#b7d3db' }
+  }
+  return withUn(pos)
+}
+
+// Self-hosted Protomaps extract (built by tools/build-pmtiles-style.mjs).
+function pmtilesFaint () {
+  const url = $('pmtiles-url').value.trim()
+  if (!url) throw new Error('Enter the PMTiles URL (top right): a .pmtiles file URL, or the TileJSON URL from `pmtiles serve`.')
+  const style = structuredClone(window.PMTILES_FAINT_STYLE)
+  style.sources.protomaps.url = url.endsWith('.pmtiles') ? `pmtiles://${url}` : url
+  return withUn(style)
+}
+
+const CANDIDATES = {
+  mapbox: {
+    name: 'Current: Mapbox UNEP Basemap Faint (needs token)',
+    note: '<b class="warn">Reference only.</b> Static Tiles API raster of the current style; billed per tile.',
+    build: () => {
+      const t = $('token').value.trim()
+      if (!t) throw new Error('Enter a Mapbox token (top right) to show the current style.')
+      return raster(`https://api.mapbox.com/styles/v1/${MAPBOX_STYLE}/tiles/256/{z}/{x}/{y}@2x?access_token=${t}`, '&copy; Mapbox &copy; OpenStreetMap')
+    }
+  },
+  hybrid: {
+    name: 'Hybrid: OSM (OpenFreeMap) + UN boundaries/labels (WCMC ArcGIS)',
+    note: '<b class="ok">UN boundaries & labels.</b> Prototype of the target: positron → own PMTiles later. Faint colours applied. Fonts: Noto Sans.',
+    build: hybrid
+  },
+  'hybrid-relief': {
+    name: 'Hybrid + terrain relief',
+    note: '<b class="ok">UN boundaries & labels.</b> Adds hillshade (AWS Terrain Tiles, free) like the current style.',
+    build: async () => withRelief(await hybrid())
+  },
+  pmtiles: {
+    name: 'Self-hosted PMTiles (Protomaps) + UN boundaries/labels',
+    note: '<b class="ok">UN boundaries & labels.</b> Target setup: our own file on pve01 now, Cloudflare R2 later. Faint palette.',
+    build: pmtilesFaint
+  },
+  'pmtiles-relief': {
+    name: 'Self-hosted PMTiles + terrain relief',
+    note: '<b class="ok">UN boundaries & labels.</b> As above, plus hillshade. In production the DEM would be self-hosted too.',
+    build: async () => withRelief(await pmtilesFaint())
+  },
+  'wcmc-template': {
+    name: 'WCMC ArcGIS: Hosted/Basemap_Template (vector)',
+    note: '<b class="ok">UN boundaries & labels.</b> Already on data-gis, z0–12. Minimal: land, lakes, coast, graticule.',
+    build: () => arcgisVts('Basemap_Template')
+  },
+  'wcmc-unbnd': {
+    name: 'WCMC ArcGIS: Hosted/UN_Boundaries (vector)',
+    note: '<b class="ok">UN boundaries.</b> Already on data-gis, z0–14. Country polygons + admin lines.',
+    build: () => arcgisVts('UN_Boundaries')
+  },
+  'un-topo': {
+    name: 'UN ClearMap WebTopo (raster)',
+    note: '<b class="ok">UN-official.</b> geoservices.un.org; UN Secretariat/community use, clearance may be required.',
+    build: () => raster(`${UN}/ClearMap_WebTopo/MapServer/tile/{z}/{y}/{x}`, UN_ATTR)
+  },
+  'un-gray': {
+    name: 'UN ClearMap WebGray (raster)',
+    note: '<b class="ok">UN-official.</b> Same terms as WebTopo. Some scales not rendered.',
+    build: () => raster(`${UN}/ClearMap_WebGray/MapServer/tile/{z}/{y}/{x}`, UN_ATTR)
+  },
+  'un-plain': {
+    name: 'UN ClearMap WebPlain (raster)',
+    note: '<b class="ok">UN-official.</b> Same terms as WebTopo. Slow to respond in tests.',
+    build: () => raster(`${UN}/ClearMap_WebPlain/MapServer/tile/{z}/{y}/{x}`, UN_ATTR)
+  },
+  positron: {
+    name: 'OpenFreeMap positron (current interim fallback)',
+    note: '<b class="warn">OSM boundaries & names — not UN-compliant</b> (e.g. disputed areas). Free, no key.',
+    build: () => POSITRON
+  },
+  'sat-esri': {
+    name: 'Satellite: Esri World Imagery + boundaries/places',
+    note: '<b class="warn">Esri reference labels are not UN boundaries.</b> Check ArcGIS licence for public use.',
+    build: () => ({
+      version: 8,
+      sources: {
+        img: { type: 'raster', tiles: [`${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`], tileSize: 256, maxzoom: 19, attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community' },
+        ref: { type: 'raster', tiles: [`${ESRI}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`], tileSize: 256, maxzoom: 19 }
+      },
+      layers: [{ id: 'img', type: 'raster', source: 'img' }, { id: 'ref-boundary', type: 'raster', source: 'ref' }]
+    })
+  },
+  'sat-esri-un': {
+    name: 'Satellite: Esri World Imagery + UN boundaries/labels',
+    note: '<b class="ok">UN boundaries & labels</b> over Esri imagery.',
+    build: async () => {
+      const un = await arcgisVts('UN_Boundaries_Labels')
+      un.layers = [{ id: 'img', type: 'raster', source: 'img' }, ...un.layers.filter(l => l.type !== 'circle' && l['source-layer'] !== 'Major_Lakes')]
+      un.sources.img = { type: 'raster', tiles: [`${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`], tileSize: 256, maxzoom: 19, attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community' }
+      for (const l of un.layers) if (l.type === 'symbol') l.paint = { ...l.paint, 'text-color': '#fff', 'text-halo-color': '#000' }
+      return un
+    }
+  },
+  'sat-eox': {
+    name: 'Satellite: EOX Sentinel-2 Cloudless 2025 + UN boundaries/labels',
+    note: '<b class="warn">Licence: CC BY-NC-SA for 2018+ years</b> (non-commercial). 10 m resolution.',
+    build: async () => {
+      const style = await CANDIDATES['sat-esri-un'].build()
+      style.sources.img = { type: 'raster', tiles: ['https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg'], tileSize: 256, maxzoom: 15, attribution: 'Sentinel-2 cloudless 2025 by <a href="https://s2maps.eu">EOX IT Services GmbH</a> (Contains modified Copernicus Sentinel data 2025)' }
+      return style
+    }
+  }
+}
+
+// --- Overlays, as PP adds them (ArcGIS raster tiles beneath labels) -------
+const OVERLAYS = [
+  { id: 'ov-wdpa', url: `${WDPA_MS}/tile/{z}/{y}/{x}` },
+  { id: 'ov-oecm', url: `${OECM_MS}/tile/{z}/{y}/{x}` }
+]
+
+function firstForegroundLayerId (map) {
+  let symbol
+  for (const l of map.getStyle().layers) {
+    if (l.id.match('boundary')) return l.id
+    if (l.type === 'symbol' && !symbol) symbol = l.id
+  }
+  return symbol
+}
+
+function addOverlays (map) {
+  const before = firstForegroundLayerId(map)
+  for (const o of OVERLAYS) {
+    if (map.getLayer(o.id)) continue
+    map.addLayer({
+      id: o.id, type: 'raster',
+      source: { type: 'raster', tiles: [o.url], tileSize: 128 },
+      layout: { visibility: $(o.id).checked ? 'visible' : 'none' }
+    }, before)
+  }
+}
+
+// --- Side-by-side maps ----------------------------------------------------
+const maps = {}
+let syncing = false
+
+function makeMap (side, key) {
+  const sel = $(`sel-${side}`)
+  for (const [k, c] of Object.entries(CANDIDATES)) sel.add(new Option(c.name, k, false, k === key))
+  const map = new maplibregl.Map({ container: `map-${side}`, style: { version: 8, sources: {}, layers: [] }, center: [20, 5], zoom: 1.3, maxZoom: 10 })
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }))
+  map.on('style.load', () => addOverlays(map))
+  map.on('move', () => {
+    if (syncing) return
+    syncing = true
+    const other = maps[side === 'a' ? 'b' : 'a']
+    other && other.jumpTo({ center: map.getCenter(), zoom: map.getZoom() })
+    syncing = false
+  })
+  sel.addEventListener('change', () => setBasemap(side))
+  maps[side] = map
+  setBasemap(side)
+}
+
+async function setBasemap (side) {
+  const key = $(`sel-${side}`).value
+  const note = $(`note-${side}`)
+  note.innerHTML = CANDIDATES[key].note
+  try {
+    maps[side].setStyle(await CANDIDATES[key].build(), { diff: false })
+  } catch (e) {
+    note.innerHTML = `<b class="warn">${e.message}</b>`
+  }
+}
+
+for (const o of OVERLAYS) {
+  $(o.id).addEventListener('change', () => Object.values(maps).forEach(m => m.getLayer(o.id) && m.setLayoutProperty(o.id, 'visibility', $(o.id).checked ? 'visible' : 'none')))
+}
+$('pp-maxzoom').addEventListener('change', e => Object.values(maps).forEach(m => m.setMaxZoom(e.target.checked ? 10 : 19)))
+$('token').addEventListener('change', () => ['a', 'b'].forEach(s => $(`sel-${s}`).value === 'mapbox' && setBasemap(s)))
+
+maplibregl.addProtocol('pmtiles', new pmtiles.Protocol().tile)
+try { $('pmtiles-url').value = localStorage.getItem('pmtiles-url') || '' } catch (e) {}
+$('pmtiles-url').addEventListener('change', (e) => {
+  try { localStorage.setItem('pmtiles-url', e.target.value.trim()) } catch (err) {}
+  ;['a', 'b'].forEach(s => $(`sel-${s}`).value.startsWith('pmtiles') && setBasemap(s))
+})
+
+makeMap('a', 'hybrid')
+makeMap('b', 'un-topo')
+
+// --- Thumbnails -----------------------------------------------------------
+const R = 6378137
+const toMerc = (x, y) => [x * Math.PI / 180 * R, Math.log(Math.tan(Math.PI / 4 + y * Math.PI / 360)) * R]
+
+async function extentFor (id) {
+  for (const layer of [1, 0]) {   // polygons, then points
+    const r = await fetch(`${WDPA_MS}/${layer}/query?where=site_id%3D${id}&returnExtentOnly=true&outSR=4326&f=json`).then(r => r.json())
+    const e = r.extent
+    if (e && Number.isFinite(e.xmin)) {
+      const d = layer === 0 ? 0.2 : 0
+      return { xmin: e.xmin - d, ymin: e.ymin - d, xmax: e.xmax + d, ymax: e.ymax + d }
+    }
+  }
+  throw new Error(`site_id ${id} not found`)
+}
+
+// Same framing as Mapbox "auto": padded bbox stretched to the 304x138 ratio.
+function fitBbox (e, w = 304, h = 138, pad = 0.1) {
+  const [x0, y0] = toMerc(e.xmin, e.ymin), [x1, y1] = toMerc(e.xmax, e.ymax)
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2
+  let dx = Math.max((x1 - x0) * (1 + 2 * pad), 2000), dy = Math.max((y1 - y0) * (1 + 2 * pad), 2000)
+  if (dx / dy > w / h) dy = dx * h / w; else dx = dy * w / h
+  return [cx - dx / 2, cy - dy / 2, cx + dx / 2, cy + dy / 2]
+}
+
+const exportUrl = (svc, bbox, extra = '') =>
+  `${svc}/export?bbox=${bbox.map(v => v.toFixed(1)).join(',')}&bboxSR=3857&imageSR=3857&size=608,276&format=png32&transparent=true&f=image${extra}`
+
+const overlayUrl = (id, bbox) => exportUrl(WDPA_MS, bbox,
+  `&layers=show:0,1&layerDefs=${encodeURIComponent(JSON.stringify({ 0: `site_id=${id}`, 1: `site_id=${id}` }))}`)
+
+function timedStack (urls) {
+  const fig = document.createElement('figure'); fig.className = 'cell'; fig.style.margin = 0
+  const stack = document.createElement('div'); stack.className = 'stack'
+  const cap = document.createElement('figcaption')
+  const t0 = performance.now(); let left = urls.length
+  for (const u of urls) {
+    const img = new Image(); img.alt = ''
+    img.onload = img.onerror = (ev) => {
+      if (ev.type === 'error') cap.dataset.err = '1'
+      if (--left === 0) cap.textContent += ` — ${Math.round(performance.now() - t0)} ms${cap.dataset.err ? ' (error)' : ''}`
+    }
+    img.src = u; stack.appendChild(img)
+  }
+  fig.append(stack, cap)
+  return { fig, cap }
+}
+
+// One shared offscreen map renders all MapLibre thumbnails in sequence.
+let renderMap
+async function maplibreThumb (id, e) {
+  if (!renderMap) {
+    renderMap = new maplibregl.Map({
+      container: 'render-target', style: await hybrid(), interactive: false, attributionControl: false,
+      pixelRatio: 2, canvasContextAttributes: { preserveDrawingBuffer: true }, fadeDuration: 0
+    })
+    await renderMap.once('load')
+    renderMap.addSource('wdpca', { type: 'vector', tiles: [`${DG}/Hosted/WDPCA/VectorTileServer/tile/{z}/{y}/{x}.pbf`], maxzoom: 15 })
+    renderMap.addLayer({ id: 'pa-fill', type: 'fill', source: 'wdpca', 'source-layer': 'WDPCA_poly_latest', paint: { 'fill-color': '#38A800', 'fill-opacity': 0.6, 'fill-outline-color': '#2a7d00' } })
+    renderMap.addLayer({ id: 'pa-point', type: 'circle', source: 'wdpca', 'source-layer': 'WDPCA_point_latest', paint: { 'circle-color': '#38A800', 'circle-radius': 5 } })
+  }
+  const t0 = performance.now()
+  for (const l of ['pa-fill', 'pa-point']) renderMap.setFilter(l, ['==', ['to-number', ['get', 'site_id']], Number(id)])
+  renderMap.fitBounds([[e.xmin, e.ymin], [e.xmax, e.ymax]], { padding: 14, animate: false, maxZoom: 12 })
+  await renderMap.once('idle')
+  return { src: renderMap.getCanvas().toDataURL('image/png'), ms: Math.round(performance.now() - t0) }
+}
+
+let thumbQueue = Promise.resolve()
+$('run-thumbs').addEventListener('click', () => {
+  const ids = $('site-ids').value.split(/[\s,]+/).filter(Boolean)
+  $('thumbs').innerHTML = ''
+  for (const id of ids) {
+    const row = document.createElement('div'); row.className = 'row'
+    row.innerHTML = `<h3>site_id ${id}</h3><div class="cells"></div>`
+    $('thumbs').appendChild(row)
+    const cells = row.querySelector('.cells')
+    extentFor(id).then(e => {
+      const bbox = fitBbox(e)
+      const add = (urls, label) => { const { fig, cap } = timedStack(urls); cap.textContent = label; cells.appendChild(fig) }
+      add([`https://www.protectedplanet.net/assets/tiles/${id}?type=protected_area&version=1`], 'Current PP (Mapbox Static Images)')
+      add([exportUrl(`${UN}/ClearMap_WebTopo/MapServer`, bbox), overlayUrl(id, bbox)], 'ArcGIS export: UN ClearMap Topo + WDPA')
+      add([exportUrl(`${UN}/ClearMap_WebGray/MapServer`, bbox), overlayUrl(id, bbox)], 'ArcGIS export: UN ClearMap Gray + WDPA')
+      add([exportUrl(`${ESRI}/World_Imagery/MapServer`, bbox), overlayUrl(id, bbox)], 'ArcGIS export: Esri Imagery + WDPA')
+      const fig = document.createElement('figure'); fig.className = 'cell'; fig.style.margin = 0
+      fig.innerHTML = '<div class="stack"></div><figcaption>MapLibre render: hybrid + WDPCA vector tiles — queued…</figcaption>'
+      cells.appendChild(fig)
+      thumbQueue = thumbQueue.then(() => maplibreThumb(id, e)).then(({ src, ms }) => {
+        fig.querySelector('.stack').innerHTML = `<img alt="" src="${src}">`
+        fig.querySelector('figcaption').textContent = `MapLibre render: hybrid + WDPCA vector tiles — ${ms} ms`
+      }).catch(err => { fig.querySelector('figcaption').textContent = `MapLibre render failed: ${err.message}` })
+    }).catch(err => { cells.textContent = err.message })
+  }
+})
+
+for (const btn of document.querySelectorAll('button.tab')) {
+  btn.addEventListener('click', () => {
+    for (const b of document.querySelectorAll('button.tab')) b.setAttribute('aria-selected', b === btn)
+    $('tab-basemaps').hidden = btn.dataset.tab !== 'basemaps'
+    $('tab-thumbs').hidden = btn.dataset.tab !== 'thumbs'
+    Object.values(maps).forEach(m => m.resize())
+  })
+}
+</script>
+</body>
+</html>
