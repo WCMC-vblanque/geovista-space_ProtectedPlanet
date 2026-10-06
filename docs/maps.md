@@ -51,7 +51,7 @@
    - Failed generations are not stored, so they are retried.
    - Bump `mapbox.version` in `config/secrets.yml` to regenerate all of them.
 3. **Generator is still Mapbox Static Images for now** — cost becomes one-off per thumbnail.
-   - Next step: replace with ArcGIS `MapServer/export` or a MapLibre Native renderer, then bump the version.
+   - Next step: switch the default to an ArcGIS export source (§3b.3), then bump the version.
 
 ## 3. Self-hosted basemap (PMTiles + Maputnik)
 
@@ -73,6 +73,39 @@
       - Mapbox fonts and sprites are licensed for Mapbox only.
    4. Keep the UN boundary/label layers (see §2.1.4) and a layer id containing `boundary` where overlays should go beneath (see §2.1.8).
 4. **Publish `style.json` and set `BASEMAP_TERRAIN_STYLE_URL` to its URL.**
+
+## 3b. Comparing options on real pages (`feat/map-options-preview`)
+
+1. **Enable the preview with `MAP_OPTIONS_PREVIEW=true` in `.env`, then rebuild assets and restart Rails.**
+   - **Never enable it in production:** it serves third-party basemaps that are still under evaluation.
+   - Optional: `PMTILES_BASEMAP_URL` = default URL for the `pmtiles` styles.
+2. **Basemaps: add URL parameters to any page with a map** (home, Marine, Green List, country, region, PA).
+   1. **`?basemap=<style>`** replaces Terrain.
+   2. **`?satellite=<style>`** replaces Satellite.
+   3. **`?pmtiles=<url>`** sets the PMTiles source: a `.pmtiles` file URL or the TileJSON URL printed by `pmtiles serve`.
+   4. **Styles** (files in `public/maps/preview/`, regenerate with `cd lib/maps && npm ci && npm run build:preview`):
+
+      | Style | What | UN boundaries |
+      |---|---|---|
+      | `hybrid` | Current default: OpenFreeMap OSM + UN layers, faint palette | Yes |
+      | `hybrid-relief` | `hybrid` + hillshade (AWS Terrain Tiles) | Yes |
+      | `pmtiles` | Self-hosted Protomaps extract + UN layers, faint palette | Yes |
+      | `pmtiles-relief` | `pmtiles` + hillshade | Yes |
+      | `clearmap-topo`, `clearmap-gray`, `clearmap-plain` | UN ClearMap raster | Yes |
+      | `wcmc-basemap-template` | WCMC ArcGIS `Hosted/Basemap_Template` | Yes |
+      | `positron` | OpenFreeMap positron only | **No** |
+      | `esri-un` | Current satellite: Esri World Imagery + UN layers | Yes |
+      | `esri-labels` | Esri World Imagery + Esri boundaries/places | **No** |
+      | `eox-2025` | EOX Sentinel-2 Cloudless 2025 + UN layers (CC BY-NC-SA) | Yes |
+
+   5. **Example:** `/?basemap=pmtiles-relief&satellite=eox-2025&pmtiles=http://pve01:8080/basemap-z10.json`
+   6. **Unknown style or missing PMTiles URL:** the defaults are kept and a `[map preview]` warning is logged in the browser console.
+3. **Thumbnails: add `?thumbnail_source=<source>` to any page.**
+   1. **Sources:** `mapbox` (current), `arcgis-clearmap-topo` (UN ClearMap Topo + site), `arcgis-esri-imagery` (Esri imagery + site).
+   2. **Remembered in the session** until changed; `?thumbnail_source=` (empty) resets it.
+   3. **ArcGIS thumbnails are SVGs** embedding two PNG exports (basemap + site from the WDPA/OECM MapServer).
+   4. **Stored apart from Mapbox ones** in `storage/thumbnails`, so switching back and forth costs nothing.
+4. **Standalone alternative:** the comparison page shows any two basemaps side by side, plus thumbnails, without running PP.
 
 ## 4. How to test
 
