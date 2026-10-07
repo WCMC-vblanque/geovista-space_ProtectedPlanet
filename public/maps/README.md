@@ -113,8 +113,9 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
 3. **Run it** (pve01 example):
    ```bash
    cd lib/maps && npm ci
-   npm run thumbs:serve -- --pmtiles https://build.protomaps.com/<YYYYMMDD>.pmtiles --port 8090
+   npm run thumbs:serve -- --pmtiles /path/to/basemap-z10.pmtiles --port 8090
    ```
+   - `--pmtiles` takes a local file path (read directly, no `pmtiles serve` needed) or an `https://` URL.
    - Then in PP: `MAPBOX_STATIC_IMAGE_URL=http://<host>:8090/static/` (trailing slash, as Rails appends `geojson(...)`).
    - Options: `--concurrency n` (default: CPU count − 1, max 4), `--style <preview name>`, `PMTILES_URL` / `PORT` env vars.
    - `GET /health` returns `ok`.
