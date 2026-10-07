@@ -35,6 +35,15 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
 | 7 | OpenFreeMap positron (OSM boundaries, not UN-compliant) | OpenFreeMap |
 | 8a–c | Satellite: Esri + UN / Esri + Esri labels / EOX Cloudless 2025 + UN | Esri, EOX |
 
+## Site info (i): PA and OECM attributes
+
+1. **Click the (i) button under the zoom buttons, then click a site.** A card shows its name, designation, IUCN category, status, area, governance and a link to its Protected Planet page.
+   - Turning it on also shows the PA/OECM overlays.
+   - Esc, the × or the (i) button turns it off.
+2. **Overlapping sites:** use the ‹ › arrows, or click the same spot again.
+3. **Vector overlays (recommended):** hover highlights the site; sites are found in the WDPCA vector tiles (adapted from Osgur's POC), then the full record is read from the WDPA / WDOECM MapServers.
+4. **Raster overlays:** the MapServers are queried at the click point; no hover highlight.
+
 ## Context layers (legend, off by default)
 
 **Shown in the legend's "Context layers" section; nothing is requested until a layer is ticked.**

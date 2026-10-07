@@ -44,6 +44,23 @@
   .legend .row { display: grid; grid-template-columns: 1fr 70px; gap: 6px; align-items: center; }
   .legend .row label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .legend input[type=range] { width: 70px; padding: 0; }
+  .site-info-btn { font: italic 700 15px/1 Georgia, serif !important; color: #333; }
+  .site-info-btn.active { background: #1f6f43 !important; color: #fff; }
+  .site-panel { position: absolute; left: 8px; bottom: 28px; z-index: 3; width: 300px; max-width: calc(100% - 16px); max-height: 60%; overflow: auto;
+    background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+  .site-panel[hidden] { display: none; }
+  .site-panel .close { position: absolute; top: 4px; right: 4px; border: 0; background: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 2px 6px; }
+  .site-panel h3 { margin: 6px 0 2px; font-size: 14px; line-height: 1.3; }
+  .site-panel .orig { margin: 0 0 6px; color: var(--muted); font-style: italic; }
+  .site-panel .site-head { display: flex; gap: 8px; align-items: center; padding-right: 22px; }
+  .site-panel .badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 6px; border-radius: 3px; color: #fff; }
+  .site-panel .badge.pa { background: #38a800; } .site-panel .badge.oecm { background: #b08a1e; }
+  .site-panel .nav { margin-left: auto; display: flex; gap: 4px; align-items: center; color: var(--muted); }
+  .site-panel .nav button { padding: 0 6px; font-size: 14px; }
+  .site-panel dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 8px 0; }
+  .site-panel dt { color: var(--muted); } .site-panel dd { margin: 0; overflow-wrap: anywhere; }
+  .site-panel .hint { color: var(--muted); margin: 4px 22px 4px 0; }
+  .site-panel .pp-link { font-weight: 600; }
   .legend .head { font-weight: 600; color: var(--muted); margin-top: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
   #tab-thumbs { padding: 12px 16px; }
   #thumbs { display: grid; gap: 16px; margin-top: 12px; }
@@ -441,7 +458,11 @@ function addOverlays (map) {
   const before = firstForegroundLayerId(map)
   if ($('overlay-mode').value === 'vector') {
     if (!map.getSource('wdpca')) {
-      map.addSource('wdpca', { type: 'vector', tiles: [`${DG}/Hosted/WDPCA/VectorTileServer/tile/{z}/{y}/{x}.pbf`], maxzoom: 16 })
+      map.addSource('wdpca', {
+        type: 'vector', tiles: [`${DG}/Hosted/WDPCA/VectorTileServer/tile/{z}/{y}/{x}.pbf`], maxzoom: 16,
+        // site_pid as feature id: one hover/selection highlight across tiles
+        promoteId: { WDPCA_poly_latest: 'site_pid', WDPCA_point_latest: 'site_pid' }
+      })
     }
     for (const o of VECTOR_OVERLAYS) {
       const common = { source: 'wdpca', filter: o.filter }
@@ -563,6 +584,223 @@ function buildLegend (side) {
   }
 }
 
+// --- Site info (i): attributes of PAs and OECMs on click ------------------
+// Adapted from Osgur's WDPCA POC: sites are found under the cursor in the
+// vector tiles (fast, hover highlight via feature-state, overlapping sites
+// one after another), then the full record is read from the WDPA / WDOECM
+// MapServers. With raster overlays the MapServers are queried at the click.
+const SITE_SERVICES = { PA: WDPA_MS, OECM: OECM_MS }
+const SITE_FIELDS = 'site_id,site_pid,site_type,name_eng,name,desig_eng,desig_type,iucn_cat,realm,rep_area,rep_m_area,status,status_yr,gov_type,own_type,mang_auth,iso3'
+const siteInfo = { a: null, b: null } // per map: { on, sites, index, hover, selected, panel, button }
+
+const esc = (v) => String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+const known = (v) => v !== null && v !== undefined && v !== '' && !/^not (reported|applicable)$/i.test(String(v))
+const km2 = (v) => `${Number(v).toLocaleString('en', { maximumFractionDigits: Number(v) < 10 ? 2 : 0 })} km²`
+
+class SiteInfoControl {
+  constructor (side) { this.side = side }
+  onAdd () {
+    this.el = document.createElement('div')
+    this.el.className = 'maplibregl-ctrl maplibregl-ctrl-group'
+    this.el.innerHTML = '<button type="button" class="site-info-btn" aria-pressed="false" title="Site info: click a protected area or OECM to see its details (Esc to close)">i</button>'
+    this.el.firstChild.addEventListener('click', () => setSiteInfo(this.side, !siteInfo[this.side].on))
+    siteInfo[this.side].button = this.el.firstChild
+    return this.el
+  }
+
+  onRemove () { this.el.remove() }
+}
+
+function initSiteInfo (side, map) {
+  const panel = document.createElement('aside')
+  panel.className = 'site-panel'
+  panel.hidden = true
+  panel.setAttribute('aria-live', 'polite')
+  $(`map-${side}`).parentElement.appendChild(panel)
+  siteInfo[side] = { on: false, sites: [], index: 0, hover: null, selected: null, panel, button: null }
+  map.addControl(new SiteInfoControl(side), 'top-right')
+
+  let pending = null
+  map.on('mousemove', (e) => {
+    const st = siteInfo[side]
+    if (!st.on || pending) return
+    pending = requestAnimationFrame(() => {
+      pending = null
+      const f = vectorSitesAt(map, e.point)[0] || null
+      map.getCanvas().style.cursor = f ? 'pointer' : 'crosshair'
+      setState(map, 'hover', st, f)
+    })
+  })
+  map.on('mouseout', () => setState(map, 'hover', siteInfo[side], null))
+  map.on('click', (e) => { if (siteInfo[side].on) pickSites(side, e) })
+}
+
+// Turn the mode on/off; turning it on also shows the PA/OECM overlays
+function setSiteInfo (side, on) {
+  const st = siteInfo[side]
+  const map = maps[side]
+  st.on = on
+  st.button.setAttribute('aria-pressed', String(on))
+  st.button.classList.toggle('active', on)
+  map.getCanvas().style.cursor = on ? 'crosshair' : ''
+  if (!on) { clearSites(side); setState(map, 'hover', st, null); return }
+  for (const row of $(`legend-${side}`).querySelectorAll('.row')) {
+    const check = row.querySelector('input[type=checkbox]')
+    if (/Protected areas \(WDPA\)|OECMs/.test(row.textContent) && !check.checked) {
+      check.checked = true
+      check.dispatchEvent(new Event('change'))
+    }
+  }
+  showPanel(side, '<p class="hint">Click a protected area or OECM on the map.</p>')
+}
+
+// Vector mode: sites under a point, one per site (a polygon spans several tiles)
+function vectorSitesAt (map, point) {
+  const layers = ['ov-wdpa', 'ov-wdpa-point', 'ov-oecm', 'ov-oecm-point']
+    .filter(id => map.getLayer(id) && map.getLayoutProperty(id, 'visibility') !== 'none')
+  if (!layers.length || !map.getSource('wdpca')) return []
+  const box = [[point.x - 3, point.y - 3], [point.x + 3, point.y + 3]]
+  const seen = new Set()
+  return map.queryRenderedFeatures(box, { layers }).filter(f => {
+    const key = `${f.properties.site_type}:${f.properties.site_pid}`
+    return !seen.has(key) && seen.add(key)
+  })
+}
+
+// Raster mode: ask both MapServers what is at the click (points within ~6 px)
+async function serverSitesAt (map, e) {
+  const { lng, lat } = e.lngLat
+  const metresPerPx = 40075016 * Math.cos(lat * Math.PI / 180) / (512 * 2 ** map.getZoom())
+  const queries = []
+  for (const [type, service] of Object.entries(SITE_SERVICES)) {
+    for (const [layer, extra] of [[1, ''], [0, `&distance=${Math.round(6 * metresPerPx)}&units=esriSRUnit_Meter`]]) {
+      queries.push(fetch(`${service}/${layer}/query?geometry=${lng},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects${extra}` +
+        `&outFields=${SITE_FIELDS}&returnGeometry=true&outSR=4326&maxAllowableOffset=${(metresPerPx / 111320).toFixed(6)}&f=geojson`)
+        .then(r => r.json())
+        .then(j => (j.features || []).map(f => ({ ...f, properties: { ...f.properties, site_type: type } })))
+        .catch(() => []))
+    }
+  }
+  return (await Promise.all(queries)).flat()
+}
+
+async function pickSites (side, e) {
+  const st = siteInfo[side]
+  const map = maps[side]
+  const vector = !!map.getSource('wdpca')
+  // a second click on the same spot shows the next overlapping site
+  const key = `${Math.round(e.point.x)},${Math.round(e.point.y)}`
+  if (st.lastClick === key && st.sites.length > 1) return showSite(side, st.index + 1)
+  st.lastClick = key
+  showPanel(side, '<p class="hint">Looking for sites…</p>')
+  const found = vector ? vectorSitesAt(map, e.point) : await serverSitesAt(map, e)
+  if (!found.length) {
+    clearSites(side)
+    return showPanel(side, '<p class="hint">No protected area or OECM here. Click inside a coloured area.</p>')
+  }
+  st.sites = found.map(f => ({ feature: f, record: vector ? null : f.properties }))
+  showSite(side, 0)
+}
+
+async function showSite (side, index) {
+  const st = siteInfo[side]
+  const map = maps[side]
+  st.index = (index + st.sites.length) % st.sites.length
+  const site = st.sites[st.index]
+  const p = site.feature.properties
+  if (map.getSource('wdpca')) setState(map, 'selected', st, site.feature)
+  else map.getSource('site-hl-geo')?.setData({ type: 'FeatureCollection', features: [site.feature] })
+  renderSite(side, p, false)
+  if (!site.record) {
+    // vector tiles only carry the name and realm: read the full record
+    const layer = site.feature.geometry.type.endsWith('Point') ? 0 : 1
+    const url = `${SITE_SERVICES[p.site_type]}/${layer}/query?where=site_pid%3D%27${encodeURIComponent(p.site_pid)}%27&outFields=${SITE_FIELDS}&returnGeometry=false&f=json`
+    site.record = await fetch(url).then(r => r.json()).then(j => j.features?.[0]?.attributes || {}).catch(() => ({}))
+    if (st.sites[st.index] !== site) return // moved on meanwhile
+  }
+  renderSite(side, { ...p, ...site.record }, true)
+}
+
+function renderSite (side, p, complete) {
+  const st = siteInfo[side]
+  const isOecm = p.site_type === 'OECM'
+  const rows = [
+    ['Designation', p.desig_eng],
+    ['Type', p.desig_type],
+    ['IUCN category', p.iucn_cat],
+    ['Status', [p.status, Number(p.status_yr) > 0 ? p.status_yr : ''].filter(Boolean).join(', ')],
+    ['Realm', p.realm],
+    ['Reported area', known(p.rep_area) ? km2(p.rep_area) : ''],
+    ['Marine area', Number(p.rep_m_area) > 0 ? km2(p.rep_m_area) : ''],
+    ['Governance', p.gov_type],
+    ['Ownership', p.own_type],
+    ['Management', p.mang_auth],
+    ['Country / territory', p.iso3],
+    ['Site ID', p.site_id + (p.site_pid && String(p.site_pid) !== String(p.site_id) ? ` (parcel ${p.site_pid})` : '')]
+  ].filter(([, v]) => known(v))
+  const n = st.sites.length
+  showPanel(side, `
+    <div class="site-head">
+      <span class="badge ${isOecm ? 'oecm' : 'pa'}">${isOecm ? 'OECM' : 'Protected area'}</span>
+      ${n > 1 ? `<span class="nav"><button type="button" data-step="-1" aria-label="Previous site">‹</button>${st.index + 1} of ${n}<button type="button" data-step="1" aria-label="Next site">›</button></span>` : ''}
+    </div>
+    <h3>${esc(p.name_eng || p.name || 'Unnamed site')}</h3>
+    ${p.name && p.name !== p.name_eng ? `<p class="orig">${esc(p.name)}</p>` : ''}
+    <dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+    ${complete ? '' : '<p class="hint">Loading details…</p>'}
+    <a class="pp-link" href="https://www.protectedplanet.net/${encodeURIComponent(p.site_id)}" target="_blank" rel="noopener">View on Protected Planet ↗</a>`)
+}
+
+function showPanel (side, html) {
+  const panel = siteInfo[side].panel
+  panel.innerHTML = `<button type="button" class="close" aria-label="Close site info">×</button>${html}`
+  panel.hidden = false
+  panel.querySelector('.close').addEventListener('click', () => setSiteInfo(side, false))
+  panel.querySelectorAll('[data-step]').forEach(b => b.addEventListener('click', () => showSite(side, siteInfo[side].index + Number(b.dataset.step))))
+}
+
+function clearSites (side) {
+  const st = siteInfo[side]
+  const map = maps[side]
+  st.sites = []; st.index = 0; st.lastClick = null
+  setState(map, 'selected', st, null)
+  map.getSource('site-hl-geo')?.setData({ type: 'FeatureCollection', features: [] })
+  if (!st.on) st.panel.hidden = true
+}
+
+// hover / selected highlight on the vector overlay features (paint only)
+function setState (map, kind, st, feature) {
+  const next = feature && feature.id != null ? { source: 'wdpca', sourceLayer: feature.sourceLayer, id: feature.id } : null
+  const prev = st[kind]
+  if (prev && next && prev.id === next.id && prev.sourceLayer === next.sourceLayer) return
+  if (prev && map.getSource('wdpca')) { try { map.setFeatureState(prev, { [kind]: false }) } catch (e) {} }
+  if (next) map.setFeatureState(next, { [kind]: true })
+  st[kind] = next
+}
+
+// Highlight layers, added after the legend so they stay out of it
+function addSiteHighlight (side, map) {
+  const st = siteInfo[side]
+  st.hover = null; st.selected = null
+  clearSites(side)
+  if (st.on) showPanel(side, '<p class="hint">Click a protected area or OECM on the map.</p>')
+  const selected = ['boolean', ['feature-state', 'selected'], false]
+  const shown = ['any', selected, ['boolean', ['feature-state', 'hover'], false]]
+  const color = ['case', selected, '#c2185b', '#ff8a3d']
+  if (map.getSource('wdpca')) {
+    map.addLayer({ id: 'site-hl-line', type: 'line', source: 'wdpca', 'source-layer': 'WDPCA_poly_latest', paint: { 'line-color': color, 'line-width': ['case', shown, 2.5, 0] } })
+    map.addLayer({ id: 'site-hl-point', type: 'circle', source: 'wdpca', 'source-layer': 'WDPCA_point_latest', paint: { 'circle-radius': 7, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': color, 'circle-stroke-width': ['case', shown, 2.5, 0] } })
+  } else {
+    map.addSource('site-hl-geo', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+    map.addLayer({ id: 'site-hl-line', type: 'line', source: 'site-hl-geo', paint: { 'line-color': '#c2185b', 'line-width': 2.5 } })
+    map.addLayer({ id: 'site-hl-point', type: 'circle', source: 'site-hl-geo', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 7, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#c2185b', 'circle-stroke-width': 2.5 } })
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') for (const side of ['a', 'b']) if (siteInfo[side]?.on) setSiteInfo(side, false)
+})
+
 // --- Side-by-side maps ----------------------------------------------------
 // 18 shows PAs/OECMs at their best resolution; 10 is PP's current limit
 const maxZoom = () => ($('pp-maxzoom').checked ? 10 : 18)
@@ -605,6 +843,7 @@ function makeMap (side, key) {
     await addContextLayers(map)
     addOverlays(map)
     buildLegend(side)
+    addSiteHighlight(side, map)
   })
   map.on('move', () => showView(map))
   map.on('move', () => {
@@ -616,6 +855,7 @@ function makeMap (side, key) {
   })
   sel.addEventListener('change', () => setBasemap(side))
   maps[side] = map
+  initSiteInfo(side, map)
   setBasemap(side)
 }
 
