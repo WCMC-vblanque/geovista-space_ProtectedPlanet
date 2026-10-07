@@ -1,31 +1,31 @@
 {
   "rules": {
-    "Country labels: read official UN labels (tiles z2-5)": 3119,
-    "Country labels: read UN country polygons": 5831,
-    "Country labels: placement inside countries + zoom tiers": 5846,
-    "City-states: one name at a time": 12417,
-    "Country names moved off their capital": 45691,
-    "Two-line names in narrow countries": 2,
-    "Between-country disputed lines: read from UN FeatureServer": 111
+    "Country labels: read official UN labels (tiles z2-5)": 2913,
+    "Country labels: read UN country polygons": 5409,
+    "Country labels: placement inside countries + zoom tiers": 6007,
+    "City-states: one name at a time": 12494,
+    "Country names moved off their capital": 50859,
+    "Two-line names in narrow countries": 3,
+    "Between-country disputed lines: read from UN FeatureServer": 97
   },
   "styles": {
     "hybrid": 194,
-    "hybrid-relief": 54,
-    "pmtiles": 60,
-    "pmtiles-relief": 33,
-    "pmtiles-mapbox": 32,
+    "hybrid-relief": 71,
+    "pmtiles": 31,
+    "pmtiles-relief": 65,
+    "pmtiles-mapbox": 25,
     "pmtiles-mapbox-v2": 21,
-    "unep-outdoor": 69932,
-    "unep-outdoor-terrain": 64,
-    "unep-outdoor-terrain-osm-parks": 57,
-    "versatiles-muted": 188,
+    "unep-outdoor": 74901,
+    "unep-outdoor-terrain": 68,
+    "unep-outdoor-terrain-osm-parks": 79,
+    "versatiles-muted": 174,
     "clearmap-topo": 0,
     "clearmap-gray": 0,
     "clearmap-plain": 0,
-    "wcmc-basemap-template": 27,
-    "positron": 76,
-    "esri-un": 31,
+    "wcmc-basemap-template": 19,
+    "positron": 72,
+    "esri-un": 26,
     "esri-labels": 0,
-    "eox-2025": 31
+    "eox-2025": 32
   }
 }
