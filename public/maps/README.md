@@ -67,6 +67,46 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
 3. **Refresh or add a font:** edit `FONTS` in `lib/maps/fetch-glyphs.mjs`, then `node fetch-glyphs.mjs` in `lib/maps`.
 4. **Bahnschrift and DIN Pro are not used:** both are licensed fonts that cannot be served on the web.
 
+## Rule costs (UNEP-WCMC Nature)
+
+1. **Most rules run once, when the styles are built, and cost nothing in the browser.** Their result is stored in the style as fixed points or flags.
+   - Build times are written to `public/maps/preview/build-timings.json` on every `npm run build`.
+2. **Browser cost per rule is measured offline** with `lib/maps/benchmark-rules.mjs` (MapLibre Native).
+   - Method: render time with the rule minus without it, 4 views (zooms 3, 5, 7, 9) at 1024×768, 15 paired runs, median.
+   - Full style: about 410 ms for the 4 views, about 100 ms per view.
+   - Network time (downloading tiles) is not included; it is the largest cost in practice.
+
+### Browser cost (rendering)
+
+| Rule | Cost (4 views) | Share | Verdict |
+|---|---|---|---|
+| Hillshade (relief shading) | 41 ms | 10% | Highest; keep (core of the design) |
+| Vegetation / land cover, overzoomed to z7 | 28 ms | 7% | Keep |
+| Relief tint (elevation colours, 2b/2c only) | 19 ms | 5% | Candidate to drop if speed matters |
+| Country labels (12 tier layers) | 15 ms | 4% | Keep |
+| Capital labels + marker | 10 ms | 3% | Keep |
+| Town labels (ranked by population) | 5 ms | 1% | Keep |
+| Paper halo under dotted UN lines | 3 ms | 1% | Negligible |
+| Rivers z2–9 (Natural Earth) | ≈ 0 | – | Negligible (but 0.8 MB download once) |
+| Between-country dotted lines (Korea, Kashmir…) | ≈ 0 | – | Negligible |
+| Curved sea labels | ≈ 0 | – | Negligible |
+
+- **Values within ±6 ms are measurement noise.**
+
+### Build cost (once per `npm run build`, 0 in the browser)
+
+| Step | Time | Note |
+|---|---|---|
+| Country names moved off their capital | 51 s | Network: reads Protomaps tiles for each capital |
+| City-states: one name at a time | 16 s | Network: reads Protomaps tiles |
+| Country labels: placement inside countries + zoom tiers | 7 s | CPU |
+| Country labels: read UN country polygons | 6 s | Network |
+| Country labels: read official UN labels | 4 s | Network |
+| Between-country disputed lines | 0.1 s | Network |
+| Two-line names in narrow countries | < 0.1 s | CPU |
+
+- **The two slowest build steps are network-bound.** A local tile cache would cut them to a few seconds if build time ever matters.
+
 ## Licence warning
 
 **The "Mapbox UNEP Faint replica" options are for testing only.** The original Mapbox style was built from the Mapbox Outdoors template, which falls under Mapbox's service terms. Check before production: [issue #2](https://github.com/WCMC-vblanque/geovista-space_ProtectedPlanet/issues/2).
