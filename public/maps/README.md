@@ -84,7 +84,8 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
 
 1. **Rendered on the server as a plain PNG, like today.** PP pages and the PDF export keep embedding an image; nothing depends on WebGL or vector tiles in the client or the PDF engine.
    - Renderer: MapLibre Native for Node (`@maplibre/maplibre-gl-native`, headless).
-   - About 0.7–2 s per thumbnail with a remote PMTiles archive; faster with a local one.
+   - Basemap tiles come from the same `pmtiles serve` as the interactive map (its TileJSON URL).
+   - About 1–2 s per thumbnail in tests.
 2. **Style: UNEP-WCMC Nature + terrain, plus seafloor relief and a bathymetry tint.** Same AWS Terrain Tiles DEM as the basemap relief.
 3. **The site is drawn from its GeoJSON, with PP's current colours.** Green for terrestrial, blue for marine/coastal.
    - In the playground the GeoJSON comes from the WDPA MapServer; in PP it would be `GeometryConcern#geojson`.
@@ -92,7 +93,7 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
 5. **Generate:**
    ```bash
    cd lib/maps && npm ci
-   npm run thumbs -- --pmtiles https://build.protomaps.com/<YYYYMMDD>.pmtiles 873 2575 2628 220201
+   npm run thumbs -- --tilejson http://<host>:8082/basemap-z10.json 873 2575 2628 220201
    ```
    - Output: `public/maps/thumbs/<site_id>.png` (608×276, @2x of 304×138).
 6. **Nearby towns are labelled, as on the Mapbox thumbnails.**
@@ -113,11 +114,12 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
 3. **Run it** (pve01 example):
    ```bash
    cd lib/maps && npm ci
-   npm run thumbs:serve -- --pmtiles /path/to/basemap-z10.pmtiles --port 8090
+   npm run thumbs:serve -- --tilejson http://<host>:8082/basemap-z10.json --port 8090
    ```
-   - `--pmtiles` takes a local file path (read directly, no `pmtiles serve` needed) or an `https://` URL.
+   - `--tilejson`: the TileJSON URL of `pmtiles serve`, the same one pasted into **PMTiles URL** in the playground.
+   - If `pmtiles serve` is down, thumbnails fail and Rails shows its placeholder.
    - Then in PP: `MAPBOX_STATIC_IMAGE_URL=http://<host>:8090/static/` (trailing slash, as Rails appends `geojson(...)`).
-   - Options: `--concurrency n` (default: CPU count − 1, max 4), `--style <preview name>`, `PMTILES_URL` / `PORT` env vars.
+   - Options: `--concurrency n` (default: CPU count − 1, max 4), `--style <preview name>`, `TILEJSON_URL` / `PORT` env vars.
    - `GET /health` returns `ok`.
 4. **Errors return a non-200 status,** so Rails falls back to its placeholder as it does with Mapbox.
 5. **Later: pre-render all sites in a batch job** instead of rendering on request.
