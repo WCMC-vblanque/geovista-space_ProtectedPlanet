@@ -55,7 +55,41 @@ Decision record for replacing Mapbox on Protected Planet (and other UNEP-WCMC we
    - **CDN worldwide:** fast everywhere, cached close to users.
    - **No load on our ArcGIS Server** from basemap traffic, which is much heavier than thematic-layer traffic.
    - **One file to update;** no publishing step.
-4. **Open question (#16):** test a .vtpk conversion if ArcGIS users need the same basemap, or if hosting on ArcGIS becomes a requirement.
+4. **Next test, planned after the S3 + CloudFront setup (#16):** publish the basemap as a .vtpk on ArcGIS Server and compare it with PMTiles.
+   - The procedure is in section 4b; the script is `lib/maps/build-vtpk.mjs`.
+
+## 4b. Test: UNEP-WCMC Nature as a .vtpk on ArcGIS Server
+
+1. **The script `lib/maps/build-vtpk.mjs` builds the .vtpk from the PMTiles extract; ArcGIS Pro is not needed.**
+   - The tiles are copied unchanged into Esri Compact Cache V2 bundles (same vector tile format, same 512 px grid).
+   - Checked offline: tiles read back byte for byte; bundle headers follow Esri's spec; the zip is stored, not compressed; the Esri style validates.
+   - **Not yet checked: ArcGIS accepting the package.** Step 3 below is the first real test.
+2. **Build it** (on pve01; about 4 GB of temporary space plus 4 GB for the output, so keep both on `/`):
+   ```bash
+   cd ~/workspace/github/ProtectedPlanet && git pull
+   cd lib/maps && npm ci
+   mkdir -p ~/pmtiles/tmp
+   TMPDIR=~/pmtiles/tmp node build-vtpk.mjs --source ~/pmtiles/basemap-z10.pmtiles --maxzoom 10 --out ~/pmtiles/unep-wcmc-nature.vtpk
+   ```
+   - Quick trial first (zooms 0–3, about 15 s): `--maxzoom 3 --out ~/pmtiles/test.vtpk`.
+3. **Check the package in ArcGIS Pro:** Add Data, then pick the .vtpk.
+   - It should draw land, water, roads and towns in the UNEP-WCMC Nature colours.
+4. **Publish it:**
+   - Portal: Content → New item → upload the .vtpk → "Create a hosted vector tile layer".
+   - The service URL ends with `/VectorTileServer`.
+5. **Compare in the playground:** paste the `…/VectorTileServer` URL into the "PMTiles URL" field.
+   - Options 2a–2c then read their tiles from ArcGIS, with the full web style.
+   - Compare with the PMTiles URL in a second browser tab: load speed (DevTools → Network) and ArcGIS Server load (Manager → statistics).
+6. **What ArcGIS clients get:**
+   - The basemap layers: land cover, water, roads and places.
+   - Not included: hillshade, relief tint, rivers at zooms 2–9, computed country labels and UN boundaries. Those are separate sources in the web style.
+   - In ArcGIS maps, add the WCMC `UN_Boundaries_Labels` service on top.
+   - Land cover stops at zoom 7: the web style overzooms it, the Esri style cannot.
+7. **If ArcGIS rejects the package:**
+   - Create any small .vtpk with ArcGIS Pro ("Create Vector Tile Package").
+   - Share its `p12/root.json` and folder list, so the script can match it.
+   - Likely difference: the service `type` (`vector` vs `indexedVector`, which also needs a `tilemap`).
+
 
 ## 5. Protecting the PMTiles service from scraping and abuse
 

@@ -13,6 +13,7 @@
     "@maplibre/maplibre-gl-native": "^6.4.1",
     "@protomaps/basemaps": "5.7.2",
     "@turf/area": "^7.4.0",
+    "archiver": "^7.0.1",
     "pbf": "^3.3.0",
     "pmtiles": "^4.5.0",
     "pngjs": "^7.0.0",

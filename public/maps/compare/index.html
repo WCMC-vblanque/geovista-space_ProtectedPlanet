@@ -88,7 +88,7 @@
   </label>
   <label title="Unticked: zoom to 18 (vector overlays stay sharp). Ticked: PP's current limit."><input type="checkbox" id="pp-maxzoom"> PP max zoom 10</label>
   <label title="A .pmtiles URL, or the TileJSON URL printed by `pmtiles serve` (e.g. http://172.20.0.161:8082/basemap-z10.json)">
-    PMTiles URL <input id="pmtiles-url" placeholder="http://172.20.0.161:8082/basemap-z10.json" size="22">
+    PMTiles URL <input id="pmtiles-url" placeholder="http://172.20.0.161:8082/basemap-z10.json" size="22" title="A .pmtiles file URL, the TileJSON URL from pmtiles serve, or an ArcGIS VectorTileServer URL (.vtpk test)">
   </label>
   <label title="Only needed for the 'Current Mapbox' option. Use a token without URL restrictions; billed as Static Tiles API.">
     Mapbox token <input id="token" type="password" placeholder="optional" size="14">
@@ -193,13 +193,16 @@ async function hybrid () {
 // into public/maps/preview/ (serve public/maps, open /compare/).
 async function previewPmtiles (name) {
   const url = $('pmtiles-url').value.trim()
-  if (!url) throw new Error('Enter the PMTiles URL (top right): a .pmtiles file URL, or the TileJSON URL from `pmtiles serve`.')
+  if (!url) throw new Error('Enter the PMTiles URL (top right): a .pmtiles file URL, the TileJSON URL from `pmtiles serve`, or an ArcGIS VectorTileServer URL (.vtpk test).')
+  // ArcGIS VectorTileServer published from build-vtpk.mjs: same tiles, Esri URL order
+  const arcgis = /\/VectorTileServer\/?$/i.test(url) ? `${url.replace(/\/$/, '')}/tile/{z}/{y}/{x}.pbf` : null
   const res = await fetch(`../preview/${name}.json`)
   if (!res.ok) throw new Error('Preview styles not found: serve the public/maps folder and open /compare/.')
   const style = await res.json()
   // Tile URL template: from the .pmtiles file, or from the TileJSON of `pmtiles serve`
   let tiles
   const tileTemplate = async () => {
+    if (arcgis) return arcgis
     if (url.endsWith('.pmtiles')) return `pmtiles://${url}/{z}/{x}/{y}`
     if (!tiles) {
       const tj = await fetch(url).then(r => r.json()).catch(() => null)
@@ -209,6 +212,7 @@ async function previewPmtiles (name) {
     return tiles
   }
   for (const src of Object.values(style.sources)) {
+    if (src.url === '__PMTILES_URL__' && arcgis) { delete src.url; src.tiles = [arcgis]; src.maxzoom = 10 }
     if (src.url === '__PMTILES_URL__') src.url = url.endsWith('.pmtiles') ? `pmtiles://${url}` : url
     if (src.tiles && src.tiles[0] === '__PMTILES_TILES__') src.tiles = [await tileTemplate()]
   }

@@ -175,6 +175,12 @@ Standalone page to compare candidate basemaps for replacing Mapbox on Protected 
 4. **Errors return a non-200 status,** so Rails falls back to its placeholder as it does with Mapbox.
 5. **Later: pre-render all sites in a batch job** instead of rendering on request.
 
+## Esri Vector Tile Package (.vtpk)
+
+1. **`lib/maps/build-vtpk.mjs` builds a .vtpk of UNEP-WCMC Nature from the PMTiles extract,** to publish on ArcGIS Server.
+2. **The test procedure is in [DECISIONS.md](DECISIONS.md), section 4b.**
+3. **The "PMTiles URL" field also accepts an ArcGIS `…/VectorTileServer` URL,** to compare both hostings with the same style.
+
 ## Regenerate the styles
 
 ```bash
